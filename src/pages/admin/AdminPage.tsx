@@ -5,32 +5,27 @@ import {
   Button,
   Card,
   CardContent,
-  Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
-  List,
-  ListItemButton,
-  ListItemText,
+  Snackbar,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography
 } from "@mui/material";
 import { api } from "../../api";
 import { useRealtime } from "../../hooks/useRealtime";
-import type { ContestScreen, QuestionPayload } from "../../types/realtime";
+import type { QuestionPayload } from "../../types/realtime";
+import { TeamDataGrid } from "../../components/admin/TeamDataGrid";
+import { ContestantDataGrid } from "../../components/admin/ContestantDataGrid";
+import { ExamControlRoom } from "../../components/admin/ExamControlRoom";
+import { QuestionCreatorDialog } from "../../components/admin/QuestionCreatorDialog";
 
 type Team = { id: number; name: string; description: string | null; contestantCount?: number };
 type Contestant = { id: number; teamId: number; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
 type ExamSet = { id: number; name: string; orderNum: number };
-
-const canShowQuestion = (screen: ContestScreen): boolean =>
-  ["waiting", "rules", "team_list", "reveal", "team_score"].includes(screen);
-const canStartCountdown = (screen: ContestScreen): boolean => screen === "question";
-const canStopShowAnswer = (screen: ContestScreen): boolean => screen === "countdown";
 
 export const AdminPage = () => {
   const { screen, connectSocket, emitWithAck, fullState, isConnected } = useRealtime();
@@ -42,13 +37,18 @@ export const AdminPage = () => {
   const [questions, setQuestions] = useState<QuestionPayload[]>([]);
   const [selectedExamSetId, setSelectedExamSetId] = useState<number | null>(null);
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
   const [teamName, setTeamName] = useState("");
   const [contestantName, setContestantName] = useState("");
   const [contestantCode, setContestantCode] = useState("");
   const [contestantPassword, setContestantPassword] = useState("");
   const [teamIdForContestant, setTeamIdForContestant] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: "" });
+  const [openQuestionDialog, setOpenQuestionDialog] = useState(false);
+  const [openExamSetDialog, setOpenExamSetDialog] = useState(false);
+  const [examSetName, setExamSetName] = useState("");
+  const [examSetOrderNum, setExamSetOrderNum] = useState(1);
 
   const authHeaders = useMemo(
     () => ({
@@ -77,16 +77,27 @@ export const AdminPage = () => {
     setTeams(teamsRes.data.data);
     setContestants(contestantsRes.data.data);
     setExamSets(examSetsRes.data.data);
-    if (examSetsRes.data.data.length > 0 && !selectedExamSetId) {
-      setSelectedExamSetId(examSetsRes.data.data[0].id);
-      await loadQuestions(examSetsRes.data.data[0].id, token);
+    if (examSetsRes.data.data.length > 0) {
+      const stillExists = selectedExamSetId && examSetsRes.data.data.some((s: ExamSet) => s.id === selectedExamSetId);
+      const nextExamSetId = stillExists ? selectedExamSetId : examSetsRes.data.data[0].id;
+      setSelectedExamSetId(nextExamSetId);
+      setExamSetOrderNum(Math.max(...examSetsRes.data.data.map((s: ExamSet) => s.orderNum), 0) + 1);
+      await loadQuestions(nextExamSetId, token);
+    } else {
+      setSelectedExamSetId(null);
+      setQuestions([]);
+      setExamSetOrderNum(1);
     }
   };
 
   const loadQuestions = async (examSetId: number, token?: string): Promise<void> => {
     const headers = { headers: { Authorization: `Bearer ${token || adminToken}` } };
     const res = await api.get(`/exam-sets/${examSetId}/questions`, headers);
-    setQuestions(res.data.data);
+    const nextQuestions = res.data.data as QuestionPayload[];
+    setQuestions(nextQuestions);
+    const nextIds = nextQuestions.map((q) => q.id);
+    setSelectedQuestionIds((prev) => prev.filter((id) => nextIds.includes(id)));
+    setSelectedQuestionId((prev) => (prev && nextIds.includes(prev) ? prev : nextIds[0] ?? null));
   };
 
   const handleAdminLogin = async (): Promise<void> => {
@@ -98,14 +109,64 @@ export const AdminPage = () => {
   };
 
   const withAck = async (action: string, event: string, payload: object): Promise<void> => {
-    setPendingAction(action);
-    const ack = await emitWithAck(event, payload);
-    setPendingAction(null);
-    if (!ack.success) {
-      setFeedback(ack.message || "Action failed");
-      return;
+    try {
+      setPendingAction(action);
+      const ack = await emitWithAck(event, payload);
+      if (!ack.success) {
+        setToast({ open: true, message: ack.message || "Action failed" });
+        return;
+      }
+      setToast({ open: true, message: `${action} success` });
+    } catch (error) {
+      setToast({ open: true, message: error instanceof Error ? error.message : "Action failed" });
+    } finally {
+      setPendingAction(null);
     }
-    setFeedback(`${action} success`);
+  };
+
+  const createExamSet = async (): Promise<void> => {
+    if (!adminToken || !examSetName.trim()) return;
+    await api.post(
+      "/exam-sets",
+      {
+        name: examSetName.trim(),
+        orderNum: examSetOrderNum
+      },
+      authHeaders
+    );
+    setOpenExamSetDialog(false);
+    setExamSetName("");
+    await loadCoreData(adminToken);
+    setToast({ open: true, message: "Tạo bộ đề thành công" });
+  };
+
+  const stopAndAutoNext = async (): Promise<void> => {
+    try {
+      setPendingAction("Dừng / hiện đáp án");
+      const ack = await emitWithAck("admin:stop-countdown", {});
+      if (!ack.success) {
+        setToast({ open: true, message: ack.message || "Action failed" });
+        return;
+      }
+      setToast({ open: true, message: "Dừng / hiện đáp án success" });
+      if (selectedQuestionIds.length > 0) {
+        const currentIndex = selectedQuestionId ? selectedQuestionIds.indexOf(selectedQuestionId) : -1;
+        if (currentIndex < 0) {
+          setSelectedQuestionId(selectedQuestionIds[0]);
+          return;
+        }
+        if (currentIndex >= selectedQuestionIds.length - 1) {
+          setSelectedQuestionId(null);
+          setToast({ open: true, message: "Đã hết danh sách câu đã chọn. Hãy chọn lại để chạy vòng mới." });
+          return;
+        }
+        setSelectedQuestionId(selectedQuestionIds[currentIndex + 1]);
+      }
+    } catch (error) {
+      setToast({ open: true, message: error instanceof Error ? error.message : "Action failed" });
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   if (!adminToken) {
@@ -114,17 +175,17 @@ export const AdminPage = () => {
         <Card sx={{ width: "100%", maxWidth: 400 }}>
           <CardContent>
             <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
-              Admin Login
+              Đăng nhập quản trị
             </Typography>
             <Stack spacing={2}>
               <TextField
                 type="password"
-                label="Admin password"
+                label="Mật khẩu quản trị"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
               />
               <Button variant="contained" onClick={handleAdminLogin} disabled={!adminPassword}>
-                Login
+                Đăng nhập
               </Button>
             </Stack>
           </CardContent>
@@ -135,227 +196,172 @@ export const AdminPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+      <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>
-          Admin Control Panel
+          Bảng điều khiển quản trị
         </Typography>
-        <Alert severity={isConnected ? "success" : "warning"}>{isConnected ? "Socket connected" : "Socket disconnected"}</Alert>
+        <Alert severity={isConnected ? "success" : "warning"}>{isConnected ? "Đã kết nối realtime" : "Mất kết nối realtime"}</Alert>
       </Box>
-
-      {feedback && <Alert sx={{ mb: 2 }}>{feedback}</Alert>}
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6">Teams</Typography>
-              <Stack direction="row" spacing={1} sx={{ my: 1 }}>
-                <TextField size="small" label="Team name" value={teamName} onChange={(e) => setTeamName(e.target.value)} />
-                <Button
-                  variant="contained"
-                  onClick={async () => {
-                    await api.post("/teams", { name: teamName }, authHeaders);
-                    setTeamName("");
-                    if (adminToken) await loadCoreData(adminToken);
-                  }}
-                  disabled={!teamName}
-                >
-                  Add
-                </Button>
-              </Stack>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Contestants</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {teams.map((team) => (
-                    <TableRow key={team.id}>
-                      <TableCell>{team.name}</TableCell>
-                      <TableCell>{team.contestantCount ?? 0}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent>
-              <Typography variant="h6">Contestants</Typography>
-              <Stack spacing={1} sx={{ my: 1 }}>
-                <TextField
-                  size="small"
-                  label="Name"
-                  value={contestantName}
-                  onChange={(e) => setContestantName(e.target.value)}
-                />
-                <TextField size="small" label="Code" value={contestantCode} onChange={(e) => setContestantCode(e.target.value)} />
-                <TextField
-                  size="small"
-                  label="Password"
-                  type="password"
-                  value={contestantPassword}
-                  onChange={(e) => setContestantPassword(e.target.value)}
-                />
-                <TextField
-                  size="small"
-                  label="Team ID"
-                  value={teamIdForContestant ?? ""}
-                  onChange={(e) => setTeamIdForContestant(Number(e.target.value))}
-                />
-                <Button
-                  variant="contained"
-                  onClick={async () => {
-                    if (!teamIdForContestant) return;
-                    await api.post(
-                      "/contestants",
-                      {
-                        teamId: teamIdForContestant,
-                        code: contestantCode,
-                        password: contestantPassword,
-                        name: contestantName
-                      },
-                      authHeaders
-                    );
-                    setContestantName("");
-                    setContestantCode("");
-                    setContestantPassword("");
-                    if (adminToken) await loadCoreData(adminToken);
-                  }}
-                  disabled={!contestantName || !contestantCode || !contestantPassword || !teamIdForContestant}
-                >
-                  Add Contestant
-                </Button>
-              </Stack>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Code</TableCell>
-                    <TableCell>Score</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {contestants.slice(0, 8).map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell>{c.name}</TableCell>
-                      <TableCell>{c.code}</TableCell>
-                      <TableCell>{c.totalScore}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <TeamDataGrid
+            teams={teams}
+            teamName={teamName}
+            onTeamNameChange={setTeamName}
+            onAddTeam={async () => {
+              await api.post("/teams", { name: teamName }, authHeaders);
+              setTeamName("");
+              if (adminToken) await loadCoreData(adminToken);
+            }}
+          />
+          <ContestantDataGrid
+            contestants={contestants}
+            teams={teams.map((t) => ({ id: t.id, name: t.name }))}
+            contestantName={contestantName}
+            contestantCode={contestantCode}
+            contestantPassword={contestantPassword}
+            teamIdForContestant={teamIdForContestant}
+            onContestantNameChange={setContestantName}
+            onContestantCodeChange={setContestantCode}
+            onContestantPasswordChange={setContestantPassword}
+            onTeamIdChange={setTeamIdForContestant}
+            onAddContestant={async () => {
+              if (!teamIdForContestant) return;
+              await api.post(
+                "/contestants",
+                {
+                  teamId: teamIdForContestant,
+                  code: contestantCode,
+                  password: contestantPassword,
+                  name: contestantName
+                },
+                authHeaders
+              );
+              setContestantName("");
+              setContestantCode("");
+              setContestantPassword("");
+              if (adminToken) await loadCoreData(adminToken);
+            }}
+          />
         </Grid>
 
         <Grid size={{ xs: 12, md: 8 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                Exam Control Room
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                Current screen: <strong>{fullState?.screen || screen}</strong>
-              </Typography>
-
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="h6">Questions</Typography>
-                  <Box sx={{ my: 1 }}>
-                    <select
-                      value={selectedExamSetId ?? ""}
-                      onChange={async (e) => {
-                        const examSetId = Number(e.target.value);
-                        setSelectedExamSetId(examSetId);
-                        await loadQuestions(examSetId);
-                        await withAck("Select exam set", "admin:select-exam-set", { examSetId });
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        background: "#1f1f2b",
-                        color: "white",
-                        border: "1px solid rgba(255,255,255,0.2)"
-                      }}
-                    >
-                      {examSets.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.orderNum}. {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Box>
-                  <List sx={{ maxHeight: 380, overflow: "auto", bgcolor: "background.paper", borderRadius: 2 }}>
-                    {questions.map((q) => (
-                      <ListItemButton
-                        key={q.id}
-                        selected={selectedQuestionId === q.id}
-                        onClick={() => setSelectedQuestionId(q.id)}
-                      >
-                        <ListItemText primary={`Q${q.orderNum}: ${q.content}`} />
-                      </ListItemButton>
-                    ))}
-                  </List>
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Typography variant="h6">State Machine Controller</Typography>
-                  <Stack spacing={1.5} sx={{ mt: 1 }}>
-                    <Button
-                      size="large"
-                      variant="contained"
-                      disabled={!selectedQuestionId || !canShowQuestion(screen) || !!pendingAction}
-                      onClick={() => withAck("Show Question", "admin:show-question", { questionId: selectedQuestionId })}
-                    >
-                      Show Question
-                    </Button>
-                    <Button
-                      size="large"
-                      variant="contained"
-                      color="secondary"
-                      disabled={!selectedQuestionId || !canStartCountdown(screen) || !!pendingAction}
-                      onClick={() => withAck("Start Countdown", "admin:start-countdown", { questionId: selectedQuestionId })}
-                    >
-                      Start Countdown
-                    </Button>
-                    <Button
-                      size="large"
-                      variant="contained"
-                      color="warning"
-                      disabled={!canStopShowAnswer(screen) || !!pendingAction}
-                      onClick={() => withAck("Stop / Show Answer", "admin:stop-countdown", {})}
-                    >
-                      Stop / Show Answer
-                    </Button>
-                    <Divider />
-                    <Button
-                      size="large"
-                      variant="outlined"
-                      disabled={!selectedExamSetId || !!pendingAction}
-                      onClick={() => withAck("Show Team Score", "admin:show-team-score", { examSetId: selectedExamSetId })}
-                    >
-                      Show Team Score
-                    </Button>
-                    <Button
-                      size="large"
-                      variant="outlined"
-                      disabled={!!pendingAction}
-                      onClick={() => withAck("Show Leaderboard", "admin:show-leaderboard", {})}
-                    >
-                      Show Leaderboard
-                    </Button>
-                  </Stack>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+          <ExamControlRoom
+            currentScreen={screen}
+            examSets={examSets}
+            questions={questions}
+            selectedExamSetId={selectedExamSetId}
+            selectedQuestionId={selectedQuestionId}
+            selectedQuestionIds={selectedQuestionIds}
+            pendingAction={!!pendingAction}
+            onSelectExamSet={async (examSetId) => {
+              setSelectedExamSetId(examSetId);
+              setSelectedQuestionIds([]);
+              setSelectedQuestionId(null);
+              await loadQuestions(examSetId);
+              await withAck("Chọn bộ đề", "admin:select-exam-set", { examSetId });
+            }}
+            onSelectQuestion={(questionId) => {
+              setSelectedQuestionId(questionId);
+              setSelectedQuestionIds((prev) => (prev.includes(questionId) ? prev : [...prev, questionId]));
+            }}
+            onGoWaiting={() => withAck("Vào màn chờ", "admin:set-screen", { screen: "waiting" })}
+            onResetSession={async () => {
+              const confirmed = window.confirm("Reset sẽ xóa trạng thái câu đang chạy và dừng countdown. Tiếp tục?");
+              if (!confirmed) return;
+              await withAck("Reset phiên thi", "admin:reset-session", {});
+              setSelectedQuestionId(null);
+              setSelectedQuestionIds([]);
+            }}
+            onShowQuestion={() => withAck("Hiển thị câu hỏi", "admin:show-question", { questionId: selectedQuestionId })}
+            onStartCountdown={() => withAck("Bắt đầu đếm ngược", "admin:start-countdown", { questionId: selectedQuestionId })}
+            onStopShowAnswer={stopAndAutoNext}
+            onShowTeamScore={() => withAck("Hiển thị điểm đội", "admin:show-team-score", { examSetId: selectedExamSetId })}
+            onShowLeaderboard={() => withAck("Hiển thị bảng xếp hạng", "admin:show-leaderboard", {})}
+            onOpenCreateQuestion={() => setOpenQuestionDialog(true)}
+            onOpenCreateExamSet={() => setOpenExamSetDialog(true)}
+            onDeleteSelectedQuestion={async () => {
+              if (!selectedQuestionId || !adminToken) return;
+              await api.delete(`/questions/${selectedQuestionId}`, authHeaders);
+              if (selectedExamSetId) {
+                await loadQuestions(selectedExamSetId, adminToken);
+              }
+              setSelectedQuestionIds((prev) => prev.filter((id) => id !== selectedQuestionId));
+              setSelectedQuestionId(null);
+              setToast({ open: true, message: "Đã xóa câu hỏi" });
+            }}
+            onDeleteSelectedExamSet={async () => {
+              if (!selectedExamSetId || !adminToken) return;
+              await api.delete(`/exam-sets/${selectedExamSetId}`, authHeaders);
+              setSelectedQuestionId(null);
+              setSelectedQuestionIds([]);
+              await loadCoreData(adminToken);
+              setToast({ open: true, message: "Đã xóa bộ đề" });
+            }}
+            onSelectAllQuestions={() => {
+              const ids = questions.map((q) => q.id);
+              setSelectedQuestionIds(ids);
+              setSelectedQuestionId(ids[0] ?? null);
+            }}
+            onClearSelectedQuestions={() => {
+              setSelectedQuestionIds([]);
+              setSelectedQuestionId(null);
+            }}
+            onSelectPreviousQuestion={() => {
+              if (selectedQuestionIds.length === 0) return;
+              const currentIndex = selectedQuestionId ? selectedQuestionIds.indexOf(selectedQuestionId) : 0;
+              const prevIndex = currentIndex <= 0 ? selectedQuestionIds.length - 1 : currentIndex - 1;
+              setSelectedQuestionId(selectedQuestionIds[prevIndex]);
+            }}
+            onSelectNextQuestion={() => {
+              if (selectedQuestionIds.length === 0) return;
+              const currentIndex = selectedQuestionId ? selectedQuestionIds.indexOf(selectedQuestionId) : -1;
+              const nextIndex = currentIndex < 0 || currentIndex >= selectedQuestionIds.length - 1 ? 0 : currentIndex + 1;
+              setSelectedQuestionId(selectedQuestionIds[nextIndex]);
+            }}
+          />
         </Grid>
       </Grid>
+
+      <Snackbar open={toast.open} autoHideDuration={3200} onClose={() => setToast({ open: false, message: "" })} message={toast.message} />
+      <QuestionCreatorDialog
+        open={openQuestionDialog}
+        onClose={() => setOpenQuestionDialog(false)}
+        selectedExamSetId={selectedExamSetId}
+        defaultOrderNum={(questions.length > 0 ? questions[questions.length - 1].orderNum : 0) + 1}
+        onCreated={async () => {
+          if (selectedExamSetId) {
+            await loadQuestions(selectedExamSetId);
+          }
+          setToast({ open: true, message: "Tạo câu hỏi thành công" });
+        }}
+      />
+      <Dialog open={openExamSetDialog} onClose={() => setOpenExamSetDialog(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Tạo bộ đề mới</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 1.5, pt: "8px !important" }}>
+          <TextField
+            size="small"
+            label="Tên bộ đề"
+            value={examSetName}
+            onChange={(e) => setExamSetName(e.target.value)}
+            placeholder="Ví dụ: Nhịp cầu Hán ngữ 2026 - Vòng 1"
+          />
+          <TextField
+            size="small"
+            label="Thứ tự hiển thị"
+            type="number"
+            value={examSetOrderNum}
+            onChange={(e) => setExamSetOrderNum(Number(e.target.value))}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenExamSetDialog(false)}>Hủy</Button>
+          <Button variant="contained" onClick={createExamSet} disabled={!examSetName.trim() || examSetOrderNum < 1}>
+            Tạo bộ đề
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

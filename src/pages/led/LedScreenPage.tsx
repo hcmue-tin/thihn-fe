@@ -85,15 +85,51 @@ export const LedScreenPage = () => {
     return Math.min(100, Math.max(0, pct));
   }, [countdownSeconds, remainingMs]);
 
+  const revealDetailText = useMemo(() => {
+    if (!question || !reveal) return [];
+
+    if (question.type === "ordering") {
+      const answer = reveal.fillBlankAnswers[0] || "";
+      const normalized = answer.replace(/\s+/g, "").toUpperCase();
+      const labelToContent = new Map(options.map((o) => [o.label.toUpperCase(), o.content]));
+      const ordered = normalized
+        .split("")
+        .map((label, idx) => {
+          const content = labelToContent.get(label);
+          return content ? `${idx + 1}. ${label} - ${content}` : `${idx + 1}. ${label}`;
+        })
+        .filter(Boolean);
+      return [`Thứ tự đúng: ${normalized}`, ...ordered];
+    }
+
+    if (question.type === "matching") {
+      const answer = reveal.fillBlankAnswers[0] || "";
+      const pairs = answer
+        .split(";")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => item.replace(/\./g, ":"));
+      return pairs.length > 0 ? ["Ghép đúng:", ...pairs.map((p) => `- ${p}`)] : ["Ghép đúng: (không có dữ liệu)"];
+    }
+
+    if (question.type === "fill_blank") {
+      return reveal.fillBlankAnswers.length > 0
+        ? ["Đáp án chấp nhận:", ...reveal.fillBlankAnswers.map((ans) => `- ${ans}`)]
+        : ["Đáp án chấp nhận: (không có dữ liệu)"];
+    }
+
+    return [];
+  }, [question, reveal, options]);
+
   return (
     <ScreenRoot>
       <Box sx={{ p: 4, height: "100vh", display: "flex", flexDirection: "column", gap: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Typography component="div" variant="h3" sx={{ fontWeight: 800 }}>
-            HAN NGU LIVE EXAM
+            HỆ THỐNG THI HÁN NGỮ
           </Typography>
           <Chip
-            label={isConnected ? "Realtime Connected" : "Disconnected"}
+            label={isConnected ? "Đã kết nối realtime" : "Mất kết nối"}
             color={isConnected ? "success" : "error"}
             sx={{ fontWeight: 700 }}
           />
@@ -153,11 +189,23 @@ export const LedScreenPage = () => {
           <Fade in timeout={500}>
             <GlassCard sx={{ p: 3 }}>
               <Typography component="div" variant="h5" color="secondary.main" sx={{ fontWeight: 800 }}>
-                Dap An Da Duoc Cong Bo
+                Đáp án đã được công bố
               </Typography>
               <Typography variant="body1" sx={{ mt: 1 }}>
-                So bai dung: {reveal.stats.correct ?? 0}/{reveal.stats.total ?? 0} ({reveal.stats.correctRate ?? 0}%)
+                Số bài đúng: {reveal.stats.correct ?? 0}/{reveal.stats.total ?? 0} ({reveal.stats.correctRate ?? 0}%)
               </Typography>
+              {revealDetailText.length > 0 && (
+                <Box sx={{ mt: 2, p: 2, borderRadius: 2, background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.35)" }}>
+                  <Typography component="div" variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+                    Đáp án chi tiết
+                  </Typography>
+                  {revealDetailText.map((line) => (
+                    <Typography key={line} variant="body1" sx={{ opacity: 0.95 }}>
+                      {line}
+                    </Typography>
+                  ))}
+                </Box>
+              )}
             </GlassCard>
           </Fade>
         )}
@@ -167,7 +215,7 @@ export const LedScreenPage = () => {
             {teamScore.teams.map((team) => (
               <GlassCard key={team.name} sx={{ p: 2.2 }}>
                 <Typography component="div" variant="h6" sx={{ fontWeight: 700 }}>
-                  {team.name} - {team.totalScore} diem
+                  {team.name} - {team.totalScore} điểm
                 </Typography>
               </GlassCard>
             ))}
@@ -179,7 +227,7 @@ export const LedScreenPage = () => {
             {leaderboard.rankings.map((item) => (
               <GlassCard key={`${item.rank}-${item.name}`} sx={{ p: 2.2 }}>
                 <Typography component="div" variant="h6" sx={{ fontWeight: 700 }}>
-                  #{item.rank} {item.name} ({item.team}) - {item.totalScore} diem
+                  #{item.rank} {item.name} ({item.team}) - {item.totalScore} điểm
                 </Typography>
               </GlassCard>
             ))}

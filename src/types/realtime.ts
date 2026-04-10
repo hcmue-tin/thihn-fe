@@ -30,7 +30,7 @@ export type QuestionOption = {
 
 export type QuestionPayload = {
   id: number;
-  type: "single_choice" | "multiple_choice" | "fill_blank";
+  type: "true_false" | "single_choice" | "multiple_choice" | "fill_blank" | "ordering" | "matching" | "listening_choice";
   content: string;
   imageUrl?: string | null;
   audioUrl?: string | null;

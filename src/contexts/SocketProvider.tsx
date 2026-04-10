@@ -86,7 +86,16 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     });
 
     socket.on("screen:change", ({ screen }: { screen: ContestScreen }) => {
-      setStore((prev) => ({ ...prev, screen }));
+      setStore((prev) => ({
+        ...prev,
+        screen,
+        fullState: prev.fullState
+          ? {
+              ...prev.fullState,
+              screen
+            }
+          : prev.fullState
+      }));
     });
 
     socket.on(
@@ -139,7 +148,11 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
   const connectSocket = useCallback((auth: { token: string; role: "admin" | "contestant" | "led" }): void => {
     disconnectSocket();
-    const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
+    const socketBaseUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      (typeof import.meta.env.VITE_API_BASE_URL === "string" ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "") : "") ||
+      "http://localhost:5126";
+    const socket = io(socketBaseUrl, {
       transports: ["websocket"],
       auth: {
         token: auth.token,

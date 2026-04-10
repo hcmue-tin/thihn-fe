@@ -1,20 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  FormControlLabel,
-  LinearProgress,
-  Radio,
-  Stack,
-  TextField,
-  Typography
-} from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Snackbar, Stack, TextField, Typography } from "@mui/material";
 import { api } from "../../api";
 import { useRealtime } from "../../hooks/useRealtime";
+import { QuestionForm } from "../../components/contestant/QuestionForm";
+import { ResultView } from "../../components/contestant/ResultView";
 
 type ContestantIdentity = {
   id: number;
@@ -43,6 +32,7 @@ export const ContestantPage = () => {
     return raw ? (JSON.parse(raw) as ContestantIdentity) : null;
   });
   const [error, setError] = useState<string | null>(null);
+  const [toastOpen, setToastOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedOptionIds, setSelectedOptionIds] = useState<number[]>([]);
   const [fillText, setFillText] = useState("");
@@ -65,12 +55,6 @@ export const ContestantPage = () => {
     setIsSubmitted(false);
     setLocked(false);
   }, [question?.id]);
-
-  useEffect(() => {
-    if (screen === "countdown" && !countdownEndsAt) {
-      setLocked(true);
-    }
-  }, [screen, countdownEndsAt]);
 
   useEffect(() => {
     if (!countdownEndsAt) {
@@ -103,7 +87,8 @@ export const ContestantPage = () => {
       setIdentity(data.contestant);
       setToken(data.token);
     } catch {
-      setError("Login failed. Please check code/password.");
+      setError("Đăng nhập thất bại. Vui lòng kiểm tra mã và mật khẩu.");
+      setToastOpen(true);
     } finally {
       setIsLoading(false);
     }
@@ -120,6 +105,7 @@ export const ContestantPage = () => {
     setIsLoading(false);
     if (!ack.success) {
       setError(ack.message || "Submit failed");
+      setToastOpen(true);
       return;
     }
     setIsSubmitted(true);
@@ -132,12 +118,12 @@ export const ContestantPage = () => {
         <Card sx={{ width: "100%", maxWidth: 380 }}>
           <CardContent>
             <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
-              Contestant Login
+              Đăng nhập thí sinh
             </Typography>
             <Stack spacing={2}>
-              <TextField label="Code" value={code} onChange={(e) => setCode(e.target.value)} fullWidth />
+              <TextField label="Mã thí sinh" value={code} onChange={(e) => setCode(e.target.value)} fullWidth />
               <TextField
-                label="Password"
+                label="Mật khẩu"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -145,7 +131,7 @@ export const ContestantPage = () => {
               />
               {error && <Alert severity="error">{error}</Alert>}
               <Button variant="contained" onClick={handleLogin} disabled={isLoading || !code || !password}>
-                Login
+                Đăng nhập
               </Button>
             </Stack>
           </CardContent>
@@ -157,6 +143,8 @@ export const ContestantPage = () => {
   const showWaiting = screen === "idle" || screen === "waiting" || screen === "rules" || screen === "team_list";
   const showQuestion = (screen === "question" || screen === "countdown") && question;
   const showResult = screen === "reveal" && latestAnswerResult;
+  const waitingForCountdown = screen === "question";
+  const canSubmit = screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
 
   return (
     <Box sx={{ p: 2, maxWidth: 720, mx: "auto" }}>
@@ -164,81 +152,43 @@ export const ContestantPage = () => {
         {identity.name} ({identity.code})
       </Typography>
       <Typography variant="body2" sx={{ mb: 2, opacity: 0.85 }}>
-        Total score: {latestAnswerResult?.totalScore ?? identity.totalScore}
+        Tổng điểm: {latestAnswerResult?.totalScore ?? identity.totalScore}
       </Typography>
 
-      {showWaiting && <Alert severity="info">Waiting for admin to begin...</Alert>}
+      {showWaiting && <Alert severity="info">Đang chờ quản trị viên bắt đầu...</Alert>}
 
-      {showQuestion && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {question.content}
-            </Typography>
-            <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 10, mb: 2 }} />
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              Time left: {Math.ceil(remainingMs / 1000)}s
-            </Typography>
-
-            {question.type === "single_choice" &&
-              options.map((opt) => (
-                <FormControlLabel
-                  key={opt.id}
-                  control={
-                    <Radio
-                      checked={selectedOptionIds[0] === opt.id}
-                      onChange={() => setSelectedOptionIds([opt.id])}
-                      disabled={locked}
-                    />
-                  }
-                  label={`${opt.label}. ${opt.content}`}
-                />
-              ))}
-
-            {question.type === "multiple_choice" &&
-              options.map((opt) => (
-                <FormControlLabel
-                  key={opt.id}
-                  control={
-                    <Checkbox
-                      checked={selectedOptionIds.includes(opt.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedOptionIds((prev) => [...prev, opt.id]);
-                        else setSelectedOptionIds((prev) => prev.filter((id) => id !== opt.id));
-                      }}
-                      disabled={locked}
-                    />
-                  }
-                  label={`${opt.label}. ${opt.content}`}
-                />
-              ))}
-
-            {question.type === "fill_blank" && (
-              <TextField
-                label="Your answer"
-                value={fillText}
-                onChange={(e) => setFillText(e.target.value)}
-                disabled={locked}
-                fullWidth
-              />
-            )}
-
-            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-              <Button variant="contained" onClick={submitAnswer} disabled={locked || isLoading}>
-                {isSubmitted ? "Submitted" : "Submit"}
-              </Button>
-              {locked && <Alert severity="success">Submission locked</Alert>}
-            </Stack>
-          </CardContent>
-        </Card>
+      {showQuestion && question && (
+        <QuestionForm
+          question={question}
+          options={options}
+          selectedOptionIds={selectedOptionIds}
+          fillText={fillText}
+          progress={progress}
+          remainingSeconds={Math.ceil(remainingMs / 1000)}
+          locked={locked}
+          isLoading={isLoading}
+          isSubmitted={isSubmitted}
+          canSubmit={canSubmit}
+          waitingForCountdown={waitingForCountdown}
+          onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
+          onToggleMultiple={(optionId, checked) => {
+            if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
+            else setSelectedOptionIds((prev) => prev.filter((id) => id !== optionId));
+          }}
+          onFillTextChange={setFillText}
+          onSubmit={submitAnswer}
+        />
       )}
 
-      {showResult && (
-        <Alert severity={latestAnswerResult.isCorrect ? "success" : "warning"} sx={{ mt: 2 }}>
-          {latestAnswerResult.isCorrect ? "Correct answer!" : "Incorrect answer."} +{latestAnswerResult.scoreEarned} points. Total:{" "}
-          {latestAnswerResult.totalScore}
-        </Alert>
+      {showResult && latestAnswerResult && (
+        <ResultView
+          isCorrect={latestAnswerResult.isCorrect}
+          scoreEarned={latestAnswerResult.scoreEarned}
+          totalScore={latestAnswerResult.totalScore}
+        />
       )}
+
+      <Snackbar open={toastOpen && !!error} autoHideDuration={3500} onClose={() => setToastOpen(false)} message={error} />
     </Box>
   );
 };
