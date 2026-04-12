@@ -7,7 +7,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
   Table,
   TableBody,
   TableCell,
@@ -17,7 +16,7 @@ import {
   Typography
 } from "@mui/material";
 
-type Contestant = { id: number; teamId: number; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
+type Contestant = { id: number; teamId: number | null; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
 type Team = { id: number; name: string };
 
 type ContestantDataGridProps = {
@@ -25,12 +24,10 @@ type ContestantDataGridProps = {
   contestantName: string;
   contestantCode: string;
   contestantPassword: string;
-  teamIdForContestant: number | null;
   teams: Team[];
   onContestantNameChange: (value: string) => void;
   onContestantCodeChange: (value: string) => void;
   onContestantPasswordChange: (value: string) => void;
-  onTeamIdChange: (value: number) => void;
   onAddContestant: () => void;
 };
 
@@ -39,12 +36,10 @@ export const ContestantDataGrid = ({
   contestantName,
   contestantCode,
   contestantPassword,
-  teamIdForContestant,
   teams,
   onContestantNameChange,
   onContestantCodeChange,
   onContestantPasswordChange,
-  onTeamIdChange,
   onAddContestant
 }: ContestantDataGridProps) => {
   const [open, setOpen] = useState(false);
@@ -71,7 +66,7 @@ export const ContestantDataGrid = ({
               <TableRow key={c.id}>
                 <TableCell>{c.name}</TableCell>
                 <TableCell>{c.code}</TableCell>
-                <TableCell>{teamMap.get(c.teamId) || `#${c.teamId}`}</TableCell>
+                <TableCell>{c.teamId ? teamMap.get(c.teamId) || `#${c.teamId}` : "Chưa có đội"}</TableCell>
                 <TableCell>{c.totalScore}</TableCell>
               </TableRow>
             ))}
@@ -91,19 +86,6 @@ export const ContestantDataGrid = ({
             value={contestantPassword}
             onChange={(e) => onContestantPasswordChange(e.target.value)}
           />
-          <TextField
-            size="small"
-            select
-            label="Đội thi"
-            value={teamIdForContestant ?? ""}
-            onChange={(e) => onTeamIdChange(Number(e.target.value))}
-          >
-            {teams.map((team) => (
-              <MenuItem key={team.id} value={team.id}>
-                {team.name}
-              </MenuItem>
-            ))}
-          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Hủy</Button>
@@ -113,7 +95,7 @@ export const ContestantDataGrid = ({
               onAddContestant();
               setOpen(false);
             }}
-            disabled={!contestantName || !contestantCode || !contestantPassword || !teamIdForContestant}
+            disabled={!contestantName || !contestantCode || !contestantPassword}
           >
             Lưu
           </Button>
