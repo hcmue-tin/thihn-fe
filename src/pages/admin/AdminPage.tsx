@@ -81,21 +81,28 @@ export const AdminPage = () => {
 
   const loadCoreData = async (token: string): Promise<void> => {
     const headers = { headers: { Authorization: `Bearer ${token}` } };
-    const [teamsRes, contestantsRes, examSetsRes, rulesRes] = await Promise.all([
+    const [teamsRes, contestantsRes, examSetsRes, rulesRes] = await Promise.allSettled([
       api.get("/teams", headers),
       api.get("/contestants", headers),
       api.get("/exam-sets", headers),
       api.get("/contest-state/rules", headers)
     ]);
-    setTeams(teamsRes.data.data);
-    setContestants(contestantsRes.data.data);
-    setExamSets(examSetsRes.data.data);
-    setRulesDraft(rulesRes.data.data?.rulesContent ?? "");
-    if (examSetsRes.data.data.length > 0) {
-      const stillExists = selectedExamSetId && examSetsRes.data.data.some((s: ExamSet) => s.id === selectedExamSetId);
-      const nextExamSetId = stillExists ? selectedExamSetId : examSetsRes.data.data[0].id;
+    if (teamsRes.status !== "fulfilled" || contestantsRes.status !== "fulfilled" || examSetsRes.status !== "fulfilled") {
+      throw new Error("Không thể tải dữ liệu lõi từ server");
+    }
+    setTeams(teamsRes.value.data.data);
+    setContestants(contestantsRes.value.data.data);
+    setExamSets(examSetsRes.value.data.data);
+    if (rulesRes.status === "fulfilled") {
+      setRulesDraft(rulesRes.value.data.data?.rulesContent ?? "");
+    } else {
+      setRulesDraft("");
+    }
+    if (examSetsRes.value.data.data.length > 0) {
+      const stillExists = selectedExamSetId && examSetsRes.value.data.data.some((s: ExamSet) => s.id === selectedExamSetId);
+      const nextExamSetId = stillExists ? selectedExamSetId : examSetsRes.value.data.data[0].id;
       setSelectedExamSetId(nextExamSetId);
-      setExamSetOrderNum(Math.max(...examSetsRes.data.data.map((s: ExamSet) => s.orderNum), 0) + 1);
+      setExamSetOrderNum(Math.max(...examSetsRes.value.data.data.map((s: ExamSet) => s.orderNum), 0) + 1);
       await loadQuestions(nextExamSetId, token);
     } else {
       setSelectedExamSetId(null);
@@ -122,6 +129,9 @@ export const AdminPage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRulesDraft(res.data.data?.rulesContent ?? "");
+    } catch {
+      setRulesDraft("");
+      setToast({ open: true, message: "Server chưa hỗ trợ API thể lệ (/contest-state/rules)" });
     } finally {
       setIsRulesLoading(false);
     }

@@ -173,7 +173,9 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       (typeof import.meta.env.VITE_API_BASE_URL === "string" ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "") : "") ||
       "http://localhost:5000";
     const socket = io(socketBaseUrl, {
-      transports: ["websocket"],
+      // NAS/reverse-proxy setups may not support websocket upgrade reliably.
+      // Keep websocket first, but allow polling fallback.
+      transports: ["websocket", "polling"],
       auth: {
         token: auth.token,
         clientType: auth.role === "led" ? "led" : undefined
