@@ -14,6 +14,8 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
+import { lightTheme } from "../../theme";
 import { api } from "../../api";
 import { ContestantDataGrid } from "../../components/admin/ContestantDataGrid";
 import { ExamControlRoom } from "../../components/admin/ExamControlRoom";
@@ -171,26 +173,29 @@ export const AdminPage = () => {
 
   if (!adminToken) {
     return (
-      <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2 }}>
-        <Card sx={{ width: "100%", maxWidth: 400 }}>
-          <CardContent>
-            <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
-              Đăng nhập quản trị
-            </Typography>
-            <Stack spacing={2}>
-              <TextField
-                type="password"
-                label="Mật khẩu quản trị"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-              />
-              <Button variant="contained" onClick={handleAdminLogin} disabled={!adminPassword}>
-                Đăng nhập
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-      </Box>
+      <ThemeProvider theme={lightTheme}>
+        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2 }}>
+          <Card sx={{ width: "100%", maxWidth: 380, backgroundColor: "rgba(255, 255, 255, 0.9)", backdropFilter: "blur(10px)", boxShadow: 24, border: "1px solid rgba(255,255,255,0.4)" }}>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h5" sx={{ mb: 3, fontWeight: 800, textAlign: "center", color: "#004282" }}>
+                Đăng nhập quản trị
+              </Typography>
+              <Stack spacing={2.5}>
+                <TextField
+                  type="password"
+                  label="Mật khẩu quản trị"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  fullWidth
+                />
+                <Button variant="contained" size="large" onClick={handleAdminLogin} disabled={!adminPassword} sx={{ mt: 2, fontWeight: 'bold' }}>
+                  Đăng nhập
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
+      </ThemeProvider>
     );
   }
 

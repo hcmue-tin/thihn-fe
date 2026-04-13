@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Snackbar, Stack, TextField, Typography } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
 import { api } from "../../api";
 import { useRealtime } from "../../hooks/useRealtime";
 import { QuestionForm } from "../../components/contestant/QuestionForm";
 import { ResultView } from "../../components/contestant/ResultView";
+import { lightTheme } from "../../theme";
+import bgImage from "../../assets/Contexts.png";
 
 type ContestantIdentity = {
   id: number;
@@ -114,29 +117,31 @@ export const ContestantPage = () => {
 
   if (!token || !identity) {
     return (
-      <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2 }}>
-        <Card sx={{ width: "100%", maxWidth: 380 }}>
-          <CardContent>
-            <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
-              Đăng nhập thí sinh
-            </Typography>
-            <Stack spacing={2}>
-              <TextField label="Mã thí sinh" value={code} onChange={(e) => setCode(e.target.value)} fullWidth />
-              <TextField
-                label="Mật khẩu"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                fullWidth
-              />
-              {error && <Alert severity="error">{error}</Alert>}
-              <Button variant="contained" onClick={handleLogin} disabled={isLoading || !code || !password}>
-                Đăng nhập
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-      </Box>
+      <ThemeProvider theme={lightTheme}>
+        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2, backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+          <Card sx={{ width: "100%", maxWidth: 380, backgroundColor: "rgba(255, 255, 255, 0.9)", backdropFilter: "blur(10px)", boxShadow: 24, border: "1px solid rgba(255,255,255,0.4)" }}>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h5" sx={{ mb: 3, fontWeight: 800, textAlign: "center", color: "#004282" }}>
+                Đăng nhập thí sinh
+              </Typography>
+              <Stack spacing={2.5}>
+                <TextField label="Mã thí sinh" value={code} onChange={(e) => setCode(e.target.value)} fullWidth />
+                <TextField
+                  label="Mật khẩu"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                />
+                {error && <Alert severity="error">{error}</Alert>}
+                <Button variant="contained" size="large" onClick={handleLogin} disabled={isLoading || !code || !password} sx={{ mt: 2, fontWeight: 'bold' }}>
+                  Đăng nhập
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
+      </ThemeProvider>
     );
   }
 
@@ -147,48 +152,52 @@ export const ContestantPage = () => {
   const canSubmit = screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
 
   return (
-    <Box sx={{ p: 2, maxWidth: 720, mx: "auto" }}>
-      <Typography variant="h6" sx={{ fontWeight: 700 }}>
-        {identity.name} ({identity.code})
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2, opacity: 0.85 }}>
-        Tổng điểm: {latestAnswerResult?.totalScore ?? identity.totalScore}
-      </Typography>
+    <ThemeProvider theme={lightTheme}>
+      <Box sx={{ minHeight: "100vh", p: 2, pt: { xs: 16, sm: 20, md: 24 }, backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+        <Box sx={{ maxWidth: 720, mx: "auto", backgroundColor: "rgba(255, 255, 255, 0.95)", borderRadius: 3, p: 3, backdropFilter: "blur(10px)", boxShadow: 24, border: "1px solid rgba(255,255,255,0.4)" }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: "#004282", textTransform: "uppercase", textAlign: "center", mb: 0.5 }}>
+            {identity.name} ({identity.code})
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3, fontWeight: 700, color: "#ed6c02", textAlign: "center" }}>
+            Tổng điểm: {latestAnswerResult?.totalScore ?? identity.totalScore}
+          </Typography>
 
-      {showWaiting && <Alert severity="info">Đang chờ quản trị viên bắt đầu...</Alert>}
+        {showWaiting && <Alert severity="info" sx={{ mb: 2 }}>Đang chờ quản trị viên bắt đầu...</Alert>}
 
-      {showQuestion && question && (
-        <QuestionForm
-          question={question}
-          options={options}
-          selectedOptionIds={selectedOptionIds}
-          fillText={fillText}
-          progress={progress}
-          remainingSeconds={Math.ceil(remainingMs / 1000)}
-          locked={locked}
-          isLoading={isLoading}
-          isSubmitted={isSubmitted}
-          canSubmit={canSubmit}
-          waitingForCountdown={waitingForCountdown}
-          onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
-          onToggleMultiple={(optionId, checked) => {
-            if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
-            else setSelectedOptionIds((prev) => prev.filter((id) => id !== optionId));
-          }}
-          onFillTextChange={setFillText}
-          onSubmit={submitAnswer}
-        />
-      )}
+        {showQuestion && question && (
+          <QuestionForm
+            question={question}
+            options={options}
+            selectedOptionIds={selectedOptionIds}
+            fillText={fillText}
+            progress={progress}
+            remainingSeconds={Math.ceil(remainingMs / 1000)}
+            locked={locked}
+            isLoading={isLoading}
+            isSubmitted={isSubmitted}
+            canSubmit={canSubmit}
+            waitingForCountdown={waitingForCountdown}
+            onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
+            onToggleMultiple={(optionId, checked) => {
+              if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
+              else setSelectedOptionIds((prev) => prev.filter((id) => id !== optionId));
+            }}
+            onFillTextChange={setFillText}
+            onSubmit={submitAnswer}
+          />
+        )}
 
-      {showResult && latestAnswerResult && (
-        <ResultView
-          isCorrect={latestAnswerResult.isCorrect}
-          scoreEarned={latestAnswerResult.scoreEarned}
-          totalScore={latestAnswerResult.totalScore}
-        />
-      )}
+        {showResult && latestAnswerResult && (
+          <ResultView
+            isCorrect={latestAnswerResult.isCorrect}
+            scoreEarned={latestAnswerResult.scoreEarned}
+            totalScore={latestAnswerResult.totalScore}
+          />
+        )}
 
-      <Snackbar open={toastOpen && !!error} autoHideDuration={3500} onClose={() => setToastOpen(false)} message={error} />
-    </Box>
+        <Snackbar open={toastOpen && !!error} autoHideDuration={3500} onClose={() => setToastOpen(false)} message={error} />
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 };

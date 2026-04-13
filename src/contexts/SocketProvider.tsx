@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { io, type Socket } from "socket.io-client";
+import bgImage from "../assets/Contexts.png";
 import type {
   AnswerRevealPayload,
   ContestScreen,
@@ -184,5 +185,11 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     () => ({ ...store, connectSocket, disconnectSocket, emitWithAck }),
     [store]
   );
-  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
+  return (
+    <SocketContext.Provider value={value}>
+      <div style={{ backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", minHeight: "100vh" }}>
+        {children}
+      </div>
+    </SocketContext.Provider>
+  );
 };
