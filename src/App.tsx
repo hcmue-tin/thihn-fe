@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { LedScreenPage } from "./pages/led/LedScreenPage";
 import { ContestantPage } from "./pages/contestant/ContestantPage";
 import { AdminPage } from "./pages/admin/AdminPage";
-import { LoginPage } from "./pages/auth/LoginPage";
 import { useRealtime } from "./hooks/useRealtime";
 import { clearAllSessions } from "./auth/session";
 
@@ -16,7 +15,7 @@ const AppRoutes = (): ReactElement => {
     const onUnauthorized = () => {
       disconnectSocket();
       clearAllSessions();
-      navigate("/login", { replace: true });
+      navigate("/contestant", { replace: true });
     };
     window.addEventListener("app:unauthorized", onUnauthorized as EventListener);
     return () => window.removeEventListener("app:unauthorized", onUnauthorized as EventListener);
@@ -27,8 +26,7 @@ const AppRoutes = (): ReactElement => {
       <Route path="/admin/*" element={<AdminPage />} />
       <Route path="/contestant/*" element={<ContestantPage />} />
       <Route path="/led" element={<LedScreenPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/contestant" replace />} />
     </Routes>
   );
 };

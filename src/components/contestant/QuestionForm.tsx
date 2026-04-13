@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, CardContent, Checkbox, FormControlLabel, LinearProgress, MenuItem, Radio, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Checkbox, FormControlLabel, LinearProgress, Radio, Stack, TextField, Typography } from "@mui/material";
+import { resolveMediaUrl } from "../../api";
 import type { QuestionOption, QuestionPayload } from "../../types/realtime";
 
 type QuestionFormProps = {
@@ -84,7 +85,24 @@ export const QuestionForm = ({
         <Typography variant="h6" sx={{ mb: 2 }}>
           {question.content}
         </Typography>
-        <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 10, mb: 2 }} />
+        {question.imageUrl && (
+          <Stack sx={{ mb: 2, alignItems: "center" }}>
+            <Box
+              component="img"
+              src={resolveMediaUrl(question.imageUrl)}
+              alt="Hình minh họa câu hỏi"
+              sx={{
+                display: "block",
+                maxWidth: "100%",
+                maxHeight: 360,
+                borderRadius: 3,
+                objectFit: "contain",
+                boxShadow: "0 12px 28px rgba(15, 23, 42, 0.14)"
+              }}
+            />
+          </Stack>
+        )}
+        <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 10, mb: 2, '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #D4A741, #F5D98A)' }, bgcolor: 'rgba(184,217,236,0.3)' }} />
         <Typography variant="body2" sx={{ mb: 2 }}>
           {waitingForCountdown ? "Thời gian còn lại: Chưa bắt đầu đếm ngược" : `Thời gian còn lại: ${remainingSeconds}s`}
         </Typography>
@@ -207,8 +225,21 @@ export const QuestionForm = ({
         )}
 
         <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-          <Button variant="contained" onClick={onSubmit} disabled={!canSubmit || locked || isLoading}>
-            {isSubmitted ? "Đã nộp" : "Nộp bài"}
+          <Button
+            variant="contained"
+            onClick={onSubmit}
+            disabled={!canSubmit || locked || isLoading}
+            fullWidth
+            sx={{
+              height: 48,
+              borderRadius: 3,
+              fontWeight: 800,
+              fontSize: "1rem",
+              background: isSubmitted ? 'linear-gradient(135deg, #15803D, #22c55e)' : 'linear-gradient(135deg, #1A8C8E, #0F6B6D)',
+              '&:hover': { background: isSubmitted ? 'linear-gradient(135deg, #15803D, #22c55e)' : 'linear-gradient(135deg, #0F6B6D, #0A5557)' }
+            }}
+          >
+            {isSubmitted ? "✅ Đã nộp bài" : "Nộp bài"}
           </Button>
         </Stack>
       </CardContent>

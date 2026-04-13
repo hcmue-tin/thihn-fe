@@ -1,19 +1,25 @@
 import { Box, Chip, CircularProgress, Fade, Paper, Typography } from "@mui/material";
 import { keyframes, styled } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
+import { resolveMediaUrl } from "../../api";
 import ledBackground from "../../assets/Led.png";
 import { useRealtime } from "../../hooks/useRealtime";
 import type { ContestScreen } from "../../types/realtime";
 
 const pulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(245, 170, 28, 0.45); }
-  70% { box-shadow: 0 0 0 30px rgba(245, 170, 28, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 170, 28, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(212, 167, 65, 0.4); }
+  70% { box-shadow: 0 0 0 30px rgba(212, 167, 65, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 167, 65, 0); }
 `;
 
 const flash = keyframes`
   0%, 100% { transform: scale(1); filter: brightness(1); }
   50% { transform: scale(1.02); filter: brightness(1.08); }
+`;
+
+const slideIn = keyframes`
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
 const ScreenRoot = styled(Box)({
@@ -30,12 +36,12 @@ const ScreenRoot = styled(Box)({
 });
 
 const GlassCard = styled(Paper)({
-  background: "linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(247,251,255,0.64) 100%)",
-  backdropFilter: "blur(14px)",
-  border: "1px solid rgba(111, 165, 207, 0.2)",
-  boxShadow: "0 22px 50px rgba(93, 142, 176, 0.14)",
-  borderRadius: 24,
-  color: "#17324d"
+  background: "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(247,251,255,0.72) 100%)",
+  backdropFilter: "blur(16px)",
+  border: "1px solid rgba(26,140,142,0.15)",
+  boxShadow: "0 16px 48px rgba(26,140,142,0.1)",
+  borderRadius: 20,
+  color: "#1A3A4A"
 });
 
 const OptionCard = styled(GlassCard, {
@@ -43,10 +49,11 @@ const OptionCard = styled(GlassCard, {
 })<{ highlighted?: boolean }>(({ highlighted }) => ({
   padding: 20,
   animation: highlighted ? `${flash} 900ms ease-in-out 2` : "none",
-  borderColor: highlighted ? "rgba(255, 177, 40, 0.85)" : "rgba(111, 165, 207, 0.2)",
+  borderColor: highlighted ? "#D4A741" : "rgba(184,217,236,0.3)",
+  border: highlighted ? "2px solid #D4A741" : "1px solid rgba(184,217,236,0.3)",
   background: highlighted
-    ? "linear-gradient(135deg, rgba(255,193,71,0.34) 0%, rgba(255,250,234,0.84) 100%)"
-    : "linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(247,251,255,0.64) 100%)"
+    ? "linear-gradient(135deg, rgba(212,167,65,0.2) 0%, rgba(245,217,138,0.4) 100%)"
+    : "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(247,251,255,0.72) 100%)"
 }));
 
 const screenTitle: Record<ContestScreen, string> = {
@@ -62,7 +69,21 @@ const screenTitle: Record<ContestScreen, string> = {
 };
 
 export const LedScreenPage = () => {
-  const { screen, question, options, countdownEndsAt, countdownSeconds, reveal, teamScore, leaderboard, isConnected, connectSocket } =
+  const {
+    screen,
+    question,
+    options,
+    countdownEndsAt,
+    countdownSeconds,
+    rulesContent,
+    reveal,
+    teamList,
+    teamScore,
+    leaderboard,
+    answerResults,
+    isConnected,
+    connectSocket
+  } =
     useRealtime();
   const [remainingMs, setRemainingMs] = useState(0);
 
@@ -99,34 +120,7 @@ export const LedScreenPage = () => {
 
   const revealDetailText = useMemo(() => {
     if (!question || !reveal) return [];
-
-    if (question.type === "ordering") {
-      const answer = reveal.fillBlankAnswers[0] || "";
-      const normalized = answer.replace(/\s+/g, "").toUpperCase();
-      const labelToContent = new Map(options.map((option) => [option.label.toUpperCase(), option.content]));
-      const ordered = normalized
-        .split("")
-        .map((label, idx) => {
-          const content = labelToContent.get(label);
-          return content ? `${idx + 1}. ${label} - ${content}` : `${idx + 1}. ${label}`;
-        })
-        .filter(Boolean);
-
-      return [`Thứ tự đúng: ${normalized}`, ...ordered];
-    }
-
-    if (question.type === "matching") {
-      const answer = reveal.fillBlankAnswers[0] || "";
-      const pairs = answer
-        .split(";")
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .map((item) => item.replace(/\./g, ":"));
-
-      return pairs.length > 0 ? ["Ghép đúng:", ...pairs.map((pair) => `- ${pair}`)] : ["Ghép đúng: (không có dữ liệu)"];
-    }
-
-    if (question.type === "fill_blank") {
+    if (reveal.fillBlankAnswers.length > 0) {
       return reveal.fillBlankAnswers.length > 0
         ? ["Đáp án chấp nhận:", ...reveal.fillBlankAnswers.map((answer) => `- ${answer}`)]
         : ["Đáp án chấp nhận: (không có dữ liệu)"];
@@ -162,13 +156,13 @@ export const LedScreenPage = () => {
       >
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <Chip
-            label={isConnected ? "Đã kết nối realtime" : "Mất kết nối"}
+            label={isConnected ? "Đã kết nối" : "Mất kết nối"}
             color={isConnected ? "success" : "error"}
             sx={{
               fontWeight: 800,
-              bgcolor: "rgba(255,255,255,0.82)",
-              color: "#17324d",
-              border: "1px solid rgba(111, 165, 207, 0.2)",
+              bgcolor: "rgba(255,255,255,0.88)",
+              color: isConnected ? "#15803D" : "#DC2626",
+              border: isConnected ? "1px solid rgba(21,128,61,0.2)" : "1px solid rgba(220,38,38,0.2)",
               backdropFilter: "blur(8px)"
             }}
           />
@@ -180,9 +174,9 @@ export const LedScreenPage = () => {
             sx={{
               fontSize: { xs: "2rem", sm: "2.5rem", md: "3.25rem", lg: "4rem" },
               fontWeight: 900,
-              color: "#10416d",
+              color: "#0F6B6D",
               lineHeight: 1.1,
-              textShadow: "0 8px 24px rgba(255,255,255,0.45)"
+              textShadow: "0 4px 16px rgba(26,140,142,0.15)"
             }}
           >
             HỆ THỐNG THI HÁN NGỮ
@@ -192,7 +186,7 @@ export const LedScreenPage = () => {
             sx={{
               mt: { xs: 0.75, md: 1.25 },
               fontSize: { xs: "1.2rem", sm: "1.4rem", md: "1.85rem" },
-              color: "#2182ca",
+              color: "#1A8C8E",
               letterSpacing: 1,
               fontWeight: 800
             }}
@@ -209,14 +203,41 @@ export const LedScreenPage = () => {
                   component="div"
                   sx={{
                     fontWeight: 800,
-                    color: "#17324d",
+                    color: "#1A3A4A",
                     textAlign: "center",
-                    fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.2rem" },
+                    fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.4rem" },
                     lineHeight: 1.2
                   }}
                 >
                   {question.content}
                 </Typography>
+                {question.imageUrl && (
+                  <Box
+                    component="img"
+                    src={resolveMediaUrl(question.imageUrl)}
+                    alt="Hình minh họa câu hỏi"
+                    sx={{
+                      mt: 2.5,
+                      display: "block",
+                      mx: "auto",
+                      maxWidth: "100%",
+                      maxHeight: 400,
+                      borderRadius: 3,
+                      objectFit: "contain",
+                      boxShadow: "0 18px 36px rgba(15, 23, 42, 0.16)"
+                    }}
+                  />
+                )}
+                {question.audioUrl && (
+                  <Box
+                    component="audio"
+                    key={`${question.id}-${question.audioUrl}`}
+                    controls
+                    autoPlay
+                    src={resolveMediaUrl(question.audioUrl)}
+                    sx={{ mt: 2.5, width: "100%" }}
+                  />
+                )}
               </GlassCard>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1, sm: 1.2, md: 1.8 } }}>
@@ -253,7 +274,7 @@ export const LedScreenPage = () => {
                 value={progress}
                 size="clamp(170px, 24vw, 220px)"
                 thickness={3.2}
-                sx={{ color: "#f5aa1c", filter: "drop-shadow(0 12px 32px rgba(245,170,28,0.26))" }}
+                sx={{ color: "#D4A741", filter: "drop-shadow(0 12px 32px rgba(212,167,65,0.22))" }}
               />
               <Box
                 sx={{
@@ -264,7 +285,7 @@ export const LedScreenPage = () => {
                   justifyContent: "center"
                 }}
               >
-                <Typography component="div" sx={{ fontWeight: 900, color: "#11416f", fontSize: { xs: "2.4rem", sm: "3rem", md: "3.75rem" } }}>
+                <Typography component="div" sx={{ fontWeight: 900, color: "#1A3A4A", fontSize: { xs: "2.4rem", sm: "3rem", md: "3.75rem" } }}>
                   {remainingSeconds}
                 </Typography>
               </Box>
@@ -272,36 +293,157 @@ export const LedScreenPage = () => {
           </Box>
         )}
 
+        {screen === "rules" && (
+          <GlassCard sx={{ width: "100%", maxWidth: { xs: "100%", md: 1080 }, mx: "auto", p: { xs: 2, md: 4 }, borderRadius: { xs: 3, md: 4 } }}>
+            <Typography component="div" sx={{ fontWeight: 900, textAlign: "center", color: "#0F6B6D", fontSize: { xs: "1.4rem", md: "2rem" } }}>
+              Thể lệ cuộc thi
+            </Typography>
+            <Typography
+              component="div"
+              sx={{
+                mt: 2.5,
+                whiteSpace: "pre-wrap",
+                textAlign: "left",
+                color: "#1A3A4A",
+                fontSize: { xs: "1rem", md: "1.2rem" },
+                lineHeight: 1.8
+              }}
+            >
+              {rulesContent?.trim() || "Chưa cấu hình thể lệ cuộc thi"}
+            </Typography>
+          </GlassCard>
+        )}
+
+        {screen === "team_list" && teamList && (
+          <Box
+            sx={{
+              width: "100%",
+              maxWidth: { xs: "100%", md: 1240 },
+              mx: "auto",
+              display: "grid",
+              gap: { xs: 1.5, md: 2 },
+              gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" }
+            }}
+          >
+            {teamList.teams.map((team) => (
+              <GlassCard key={team.id} sx={{ p: { xs: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
+                <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1.15rem", md: "1.5rem" } }}>
+                  {team.name}
+                </Typography>
+                <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
+                  {team.contestants.length > 0 ? (
+                    team.contestants.map((contestant) => (
+                      <Box key={contestant.id} sx={{ p: 1.5, borderRadius: 2.5, background: "rgba(255,255,255,0.52)", border: "1px solid rgba(111, 165, 207, 0.18)" }}>
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.1rem" } }}>
+                          {contestant.name}
+                        </Typography>
+                        <Typography component="div" sx={{ mt: 0.35, color: "#4b647c", fontSize: { xs: "0.92rem", md: "1rem" } }}>
+                          {contestant.unit || contestant.code}
+                        </Typography>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography component="div" sx={{ color: "#4b647c" }}>
+                      Chưa có thí sinh trong đội này
+                    </Typography>
+                  )}
+                </Box>
+              </GlassCard>
+            ))}
+          </Box>
+        )}
+
         {screen === "reveal" && reveal && (
           <Fade in timeout={500}>
-            <GlassCard sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
-              <Typography component="div" sx={{ fontWeight: 800, color: "#1f73b7", fontSize: { xs: "1.2rem", sm: "1.35rem", md: "1.6rem" } }}>
-                Đáp án đã được công bố
-              </Typography>
-              <Typography sx={{ mt: 1, color: "#23415f", fontSize: { xs: "0.98rem", md: "1.05rem" } }}>
-                Số bài đúng: {reveal.stats.correct ?? 0}/{reveal.stats.total ?? 0} ({reveal.stats.correctRate ?? 0}%)
-              </Typography>
-              {revealDetailText.length > 0 && (
-                <Box
+            <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", display: "grid", gap: { xs: 1.5, md: 2 } }}>
+              <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
+                <Typography component="div" sx={{ fontWeight: 800, color: "#1f73b7", fontSize: { xs: "1.2rem", sm: "1.35rem", md: "1.6rem" } }}>
+                  Đáp án đã được công bố
+                </Typography>
+                <Typography sx={{ mt: 1, color: "#23415f", fontSize: { xs: "0.98rem", md: "1.05rem" } }}>
+                  Số bài đúng: {reveal.stats.correct ?? 0}/{reveal.stats.total ?? 0} ({reveal.stats.correctRate ?? 0}%)
+                </Typography>
+                {revealDetailText.length > 0 && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      borderRadius: 2,
+                      background: "rgba(255,190,58,0.14)",
+                      border: "1px solid rgba(255,180,43,0.36)"
+                    }}
+                  >
+                    <Typography component="div" sx={{ fontWeight: 800, mb: 1, color: "#11416f", fontSize: { xs: "1rem", md: "1.15rem" } }}>
+                      Đáp án chi tiết
+                    </Typography>
+                    {revealDetailText.map((line) => (
+                      <Typography key={line} sx={{ opacity: 0.95, color: "#23415f", fontSize: { xs: "0.95rem", md: "1rem" } }}>
+                        {line}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+              </GlassCard>
+              {answerResults && (
+                <GlassCard
                   sx={{
-                    mt: 2,
-                    p: 2,
-                    borderRadius: 2,
-                    background: "rgba(255,190,58,0.14)",
-                    border: "1px solid rgba(255,180,43,0.36)"
+                    p: { xs: 1.75, md: 2.5 },
+                    borderRadius: { xs: 3, md: 4 },
+                    animation: `${slideIn} 420ms ease-out`
                   }}
                 >
-                  <Typography component="div" sx={{ fontWeight: 800, mb: 1, color: "#11416f", fontSize: { xs: "1rem", md: "1.15rem" } }}>
-                    Đáp án chi tiết
+                  <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1.05rem", md: "1.25rem" } }}>
+                    Kết quả từng thí sinh
                   </Typography>
-                  {revealDetailText.map((line) => (
-                    <Typography key={line} sx={{ opacity: 0.95, color: "#23415f", fontSize: { xs: "0.95rem", md: "1rem" } }}>
-                      {line}
-                    </Typography>
-                  ))}
-                </Box>
+                  <Box sx={{ mt: 1.75, display: "grid", gap: 1 }}>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
+                        gap: 1,
+                        px: 1.5,
+                        color: "#4b647c",
+                        fontWeight: 800,
+                        fontSize: { xs: "0.82rem", md: "0.92rem" }
+                      }}
+                    >
+                      <Box>Thí sinh</Box>
+                      <Box>Đội</Box>
+                      <Box>Kết quả</Box>
+                      <Box>Điểm</Box>
+                    </Box>
+                    {answerResults.results.map((row) => (
+                      <Box
+                        key={`${row.contestantId}-${row.teamName}`}
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
+                          gap: 1,
+                          alignItems: "center",
+                          p: 1.5,
+                          borderRadius: 2.5,
+                          background: "rgba(255,255,255,0.56)",
+                          border: "1px solid rgba(111, 165, 207, 0.18)"
+                        }}
+                      >
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d" }}>
+                          {row.contestantName}
+                        </Typography>
+                        <Typography component="div" sx={{ color: "#4b647c" }}>
+                          {row.teamName}
+                        </Typography>
+                        <Typography component="div" sx={{ fontWeight: 900, color: row.isCorrect ? "#15803d" : "#b91c1c" }}>
+                          {row.isCorrect ? "✅ Đúng" : "❌ Sai"}
+                        </Typography>
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d" }}>
+                          {row.scoreEarned}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </GlassCard>
               )}
-            </GlassCard>
+            </Box>
           </Fade>
         )}
 
@@ -312,6 +454,31 @@ export const LedScreenPage = () => {
                 <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" } }}>
                   {team.name} - {team.totalScore} điểm
                 </Typography>
+                {team.contestants && team.contestants.length > 0 && (
+                  <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
+                    {team.contestants.map((contestant) => (
+                      <Box
+                        key={`${team.name}-${contestant.contestantId ?? contestant.name}`}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 1,
+                          p: 1.25,
+                          borderRadius: 2.5,
+                          background: "rgba(255,255,255,0.52)",
+                          border: "1px solid rgba(111, 165, 207, 0.18)"
+                        }}
+                      >
+                        <Typography component="div" sx={{ fontWeight: 700, color: "#17324d" }}>
+                          {contestant.name}
+                        </Typography>
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#11416f" }}>
+                          {contestant.score} điểm
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
               </GlassCard>
             ))}
           </Box>
@@ -320,10 +487,53 @@ export const LedScreenPage = () => {
         {screen === "leaderboard" && leaderboard && (
           <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1080 }, mx: "auto", display: "flex", flexDirection: "column", gap: { xs: 1, md: 1.5 } }}>
             {leaderboard.rankings.map((item) => (
-              <GlassCard key={`${item.rank}-${item.name}`} sx={{ p: { xs: 1.5, md: 2.2 }, borderRadius: { xs: 3, md: 4 } }}>
-                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                  #{item.rank} {item.name} ({item.team}) - {item.totalScore} điểm
-                </Typography>
+              <GlassCard
+                key={`${item.rank}-${item.name}`}
+                sx={{
+                  p: { xs: 1.5, md: 2.2 },
+                  borderRadius: { xs: 3, md: 4 },
+                  border: item.rank === 1 ? "2px solid #D4A741" : item.rank === 2 ? "2px solid #94A3B8" : item.rank === 3 ? "2px solid #B45309" : undefined,
+                  background: item.rank === 1 ? "linear-gradient(135deg, rgba(245,217,138,0.2), rgba(255,255,255,0.88))" : undefined
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 900,
+                      fontSize: "1.1rem",
+                      flexShrink: 0,
+                      color: "#FFFFFF",
+                      background:
+                        item.rank === 1 ? "linear-gradient(135deg, #D4A741, #F5D98A)" :
+                        item.rank === 2 ? "linear-gradient(135deg, #94A3B8, #CBD5E1)" :
+                        item.rank === 3 ? "linear-gradient(135deg, #B45309, #D97706)" :
+                        "linear-gradient(135deg, #1A8C8E, #0F6B6D)"
+                    }}
+                  >
+                    {item.rank}
+                  </Box>
+                  <Box>
+                    <Typography
+                      component="div"
+                      sx={{
+                        fontWeight: 800,
+                        color: "#1A3A4A",
+                        fontSize: { xs: "1rem", md: "1.25rem" }
+                      }}
+                    >
+                      {item.name} - {item.totalScore} điểm
+                    </Typography>
+                    <Typography component="div" sx={{ mt: 0.25, color: "#4A7A8A", fontSize: { xs: "0.92rem", md: "1rem" } }}>
+                      Đội: {item.team || "Chưa có đội"}
+                    </Typography>
+                  </Box>
+                </Box>
               </GlassCard>
             ))}
           </Box>

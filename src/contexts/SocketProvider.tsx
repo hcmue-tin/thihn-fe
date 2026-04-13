@@ -1,14 +1,15 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { io, type Socket } from "socket.io-client";
-import bgImage from "../assets/Contexts.png";
 import type {
   AnswerRevealPayload,
+  AnswerResultsPayload,
   ContestScreen,
   ContestState,
   LeaderboardPayload,
   QuestionOption,
   QuestionPayload,
+  TeamListPayload,
   TeamScorePayload
 } from "../types/realtime";
 
@@ -22,9 +23,12 @@ type RealtimeStore = {
   options: QuestionOption[];
   countdownEndsAt: number | null;
   countdownSeconds: number;
+  rulesContent: string | null;
   reveal: AnswerRevealPayload | null;
+  teamList: TeamListPayload | null;
   teamScore: TeamScorePayload | null;
   leaderboard: LeaderboardPayload | null;
+  answerResults: AnswerResultsPayload | null;
   latestAnswerResult: { questionId: number; isCorrect: boolean; scoreEarned: number; totalScore: number } | null;
   connectSocket: (auth: { token: string; role: "admin" | "contestant" | "led" }) => void;
   disconnectSocket: () => void;
@@ -41,9 +45,12 @@ const initialStore: RealtimeStore = {
   options: [],
   countdownEndsAt: null,
   countdownSeconds: 0,
+  rulesContent: null,
   reveal: null,
+  teamList: null,
   teamScore: null,
   leaderboard: null,
+  answerResults: null,
   latestAnswerResult: null,
   connectSocket: () => undefined,
   disconnectSocket: () => undefined,
@@ -82,18 +89,21 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         ...prev,
         fullState,
         screen: fullState.screen,
-        countdownEndsAt: fullState.countdownEndAt ? new Date(fullState.countdownEndAt).getTime() : null
+        countdownEndsAt: fullState.countdownEndAt ? new Date(fullState.countdownEndAt).getTime() : null,
+        rulesContent: fullState.rulesContent ?? prev.rulesContent
       }));
     });
 
-    socket.on("screen:change", ({ screen }: { screen: ContestScreen }) => {
+    socket.on("screen:change", ({ screen, data }: { screen: ContestScreen; data?: { rulesContent?: string | null } }) => {
       setStore((prev) => ({
         ...prev,
         screen,
+        rulesContent: data?.rulesContent ?? prev.rulesContent,
         fullState: prev.fullState
           ? {
               ...prev.fullState,
-              screen
+              screen,
+              rulesContent: data?.rulesContent ?? prev.fullState.rulesContent
             }
           : prev.fullState
       }));
@@ -107,7 +117,8 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
           question,
           options,
           countdownSeconds,
-          reveal: null
+          reveal: null,
+          answerResults: null
         }));
       }
     );
@@ -135,8 +146,16 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       setStore((prev) => ({ ...prev, teamScore: payload }));
     });
 
+    socket.on("team-list:show", (payload: TeamListPayload) => {
+      setStore((prev) => ({ ...prev, teamList: payload }));
+    });
+
     socket.on("leaderboard:show", (payload: LeaderboardPayload) => {
       setStore((prev) => ({ ...prev, leaderboard: payload }));
+    });
+
+    socket.on("answer-results:show", (payload: AnswerResultsPayload) => {
+      setStore((prev) => ({ ...prev, answerResults: payload }));
     });
 
     socket.on(
@@ -157,7 +176,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       transports: ["websocket"],
       auth: {
         token: auth.token,
-        clientType: auth.role === "led" ? "led" : "admin"
+        clientType: auth.role === "led" ? "led" : undefined
       }
     });
     socketRef.current = socket;
@@ -187,9 +206,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   );
   return (
     <SocketContext.Provider value={value}>
-      <div style={{ backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", minHeight: "100vh" }}>
-        {children}
-      </div>
+      {children}
     </SocketContext.Provider>
   );
 };

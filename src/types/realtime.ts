@@ -16,6 +16,7 @@ export type ContestState = {
   currentQuestionId: number | null;
   isCountdownActive: boolean;
   countdownEndAt: string | null;
+  rulesContent?: string | null;
   version: number;
   updatedAt: string;
 };
@@ -53,6 +54,30 @@ export type TeamScorePayload = {
     name: string;
     totalScore: number;
     contestants?: Array<{ contestantId?: number; name: string; score: number }>;
+  }>;
+};
+
+export type TeamListPayload = {
+  teams: Array<{
+    id: number;
+    name: string;
+    contestants: Array<{
+      id: number;
+      name: string;
+      code: string;
+      unit: string | null;
+    }>;
+  }>;
+};
+
+export type AnswerResultsPayload = {
+  questionId: number;
+  results: Array<{
+    contestantId: number;
+    contestantName: string;
+    teamName: string;
+    isCorrect: boolean;
+    scoreEarned: number;
   }>;
 };
 

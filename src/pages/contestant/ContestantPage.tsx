@@ -119,9 +119,9 @@ export const ContestantPage = () => {
     return (
       <ThemeProvider theme={lightTheme}>
         <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2, backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
-          <Card sx={{ width: "100%", maxWidth: 380, backgroundColor: "rgba(255, 255, 255, 0.9)", backdropFilter: "blur(10px)", boxShadow: 24, border: "1px solid rgba(255,255,255,0.4)" }}>
+          <Card sx={{ width: "100%", maxWidth: 400, backgroundColor: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", borderRadius: 5 }}>
             <CardContent sx={{ p: 4 }}>
-              <Typography variant="h5" sx={{ mb: 3, fontWeight: 800, textAlign: "center", color: "#004282" }}>
+              <Typography variant="h5" sx={{ mb: 3, fontWeight: 900, textAlign: "center", color: "#0F6B6D" }}>
                 Đăng nhập thí sinh
               </Typography>
               <Stack spacing={2.5}>
@@ -134,7 +134,7 @@ export const ContestantPage = () => {
                   fullWidth
                 />
                 {error && <Alert severity="error">{error}</Alert>}
-                <Button variant="contained" size="large" onClick={handleLogin} disabled={isLoading || !code || !password} sx={{ mt: 2, fontWeight: 'bold' }}>
+                <Button variant="contained" size="large" onClick={handleLogin} disabled={isLoading || !code || !password} sx={{ mt: 2, fontWeight: 'bold', height: 48, borderRadius: 3, background: 'linear-gradient(135deg, #1A8C8E, #0F6B6D)', '&:hover': { background: 'linear-gradient(135deg, #0F6B6D, #0A5557)' } }}>
                   Đăng nhập
                 </Button>
               </Stack>
@@ -154,15 +154,22 @@ export const ContestantPage = () => {
   return (
     <ThemeProvider theme={lightTheme}>
       <Box sx={{ minHeight: "100vh", p: 2, pt: { xs: 16, sm: 20, md: 24 }, backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
-        <Box sx={{ maxWidth: 720, mx: "auto", backgroundColor: "rgba(255, 255, 255, 0.95)", borderRadius: 3, p: 3, backdropFilter: "blur(10px)", boxShadow: 24, border: "1px solid rgba(255,255,255,0.4)" }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: "#004282", textTransform: "uppercase", textAlign: "center", mb: 0.5 }}>
+        <Box sx={{ maxWidth: 720, mx: "auto", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 5, p: 3, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", mb: 0.25 }}>
             {identity.name} ({identity.code})
           </Typography>
-          <Typography variant="body1" sx={{ mb: 3, fontWeight: 700, color: "#ed6c02", textAlign: "center" }}>
-            Tổng điểm: {latestAnswerResult?.totalScore ?? identity.totalScore}
-          </Typography>
+          {identity.unit && (
+            <Typography variant="body2" sx={{ textAlign: "center", color: "#4A7A8A", mb: 0.5 }}>
+              {identity.unit}
+            </Typography>
+          )}
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 2.5 }}>
+            <Box sx={{ px: 3, py: 0.75, borderRadius: 50, background: "linear-gradient(135deg, #D4A741, #F5D98A)", color: "#FFFFFF", fontWeight: 800, fontSize: "1rem", boxShadow: "0 4px 16px rgba(212,167,65,0.3)" }}>
+              Tổng điểm: {latestAnswerResult?.totalScore ?? identity.totalScore}
+            </Box>
+          </Box>
 
-        {showWaiting && <Alert severity="info" sx={{ mb: 2 }}>Đang chờ quản trị viên bắt đầu...</Alert>}
+        {showWaiting && <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>Đang chờ quản trị viên bắt đầu...</Alert>}
 
         {showQuestion && question && (
           <QuestionForm

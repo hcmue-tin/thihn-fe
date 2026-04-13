@@ -6,6 +6,18 @@ export const api = axios.create({
   timeout: 10000
 });
 
+export const getBackendBaseUrl = (): string => {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  return apiBaseUrl.replace(/\/api\/?$/, "");
+};
+
+export const resolveMediaUrl = (url?: string | null): string => {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+  return `${getBackendBaseUrl()}${normalizedPath}`;
+};
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {

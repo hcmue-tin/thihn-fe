@@ -1,4 +1,4 @@
-import { Box, Button, Card, CardContent, Grid, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Grid, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import type { ContestScreen, QuestionPayload } from "../../types/realtime";
 import { LiveButtons } from "./LiveButtons";
 
@@ -21,10 +21,10 @@ type ExamControlRoomProps = {
   onStopShowAnswer: () => void;
   onShowTeamScore: () => void;
   onShowLeaderboard: () => void;
-  onOpenCreateQuestion: () => void;
-  onOpenCreateExamSet: () => void;
-  onDeleteSelectedQuestion: () => void;
-  onDeleteSelectedExamSet: () => void;
+  onShowRules: () => void;
+  onShowTeamList: () => void;
+  questionAudioUrl?: string | null;
+  onReplayQuestionAudio: () => void;
   onSelectAllQuestions: () => void;
   onClearSelectedQuestions: () => void;
   onSelectPreviousQuestion: () => void;
@@ -48,10 +48,10 @@ export const ExamControlRoom = ({
   onStopShowAnswer,
   onShowTeamScore,
   onShowLeaderboard,
-  onOpenCreateQuestion,
-  onOpenCreateExamSet,
-  onDeleteSelectedQuestion,
-  onDeleteSelectedExamSet,
+  onShowRules,
+  onShowTeamList,
+  questionAudioUrl,
+  onReplayQuestionAudio,
   onSelectAllQuestions,
   onClearSelectedQuestions,
   onSelectPreviousQuestion,
@@ -59,41 +59,35 @@ export const ExamControlRoom = ({
 }: ExamControlRoomProps) => (
   <Card>
     <CardContent>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: "#0F6B6D" }}>
         Phòng điều khiển thi
       </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Màn hình hiện tại: <strong>{currentScreen}</strong>
-      </Typography>
+      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="body2" sx={{ color: "#4A7A8A" }}>
+          Màn hình hiện tại:
+        </Typography>
+        <Box sx={{ px: 1.5, py: 0.25, borderRadius: 2, bgcolor: "rgba(26,140,142,0.08)", border: "1px solid rgba(26,140,142,0.15)" }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: "#1A8C8E" }}>{currentScreen}</Typography>
+        </Box>
+      </Box>
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h6">Quản lý đề thi</Typography>
-          <Stack direction="row" spacing={1} sx={{ mt: 1, mb: 1, flexWrap: "wrap" }}>
-            <Button size="small" variant="contained" onClick={onOpenCreateExamSet}>
-              Tạo bộ đề
-            </Button>
-            <Button size="small" variant="contained" color="secondary" onClick={onOpenCreateQuestion} disabled={!selectedExamSetId}>
-              Tạo câu hỏi mới
-            </Button>
-            <Button size="small" variant="outlined" color="error" onClick={onDeleteSelectedQuestion} disabled={!selectedQuestionId}>
-              Xóa câu đã chọn
-            </Button>
-            <Button size="small" variant="outlined" color="error" onClick={onDeleteSelectedExamSet} disabled={!selectedExamSetId}>
-              Xóa bộ đề
-            </Button>
-          </Stack>
+          <Typography variant="h6" sx={{ color: "#0F6B6D" }}>Chọn câu hỏi</Typography>
           <Box sx={{ my: 1 }}>
             <select
               value={selectedExamSetId ?? ""}
               onChange={(e) => onSelectExamSet(Number(e.target.value))}
               style={{
                 width: "100%",
-                padding: "10px",
-                borderRadius: "8px",
-                background: "#1f1f2b",
-                color: "white",
-                border: "1px solid rgba(255,255,255,0.2)"
+                padding: "10px 14px",
+                borderRadius: "12px",
+                background: "#FFFFFF",
+                color: "#1A3A4A",
+                border: "2px solid rgba(184,217,236,0.4)",
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                outline: "none"
               }}
             >
               {examSets.map((s) => (
@@ -104,25 +98,52 @@ export const ExamControlRoom = ({
             </select>
           </Box>
           <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap" }}>
-            <Button size="small" variant="outlined" onClick={onSelectAllQuestions} disabled={questions.length === 0}>
+            <Typography variant="caption" sx={{ color: "#4A7A8A", alignSelf: "center" }}>
+              Đã chọn: {selectedQuestionIds.length} câu
+            </Typography>
+            <Box sx={{ flex: 1 }} />
+            <Typography
+              component="span"
+              onClick={onSelectAllQuestions}
+              sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#1A8C8E", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
+            >
               Chọn tất cả ({questions.length})
-            </Button>
-            <Button size="small" variant="outlined" onClick={onClearSelectedQuestions} disabled={selectedQuestionIds.length === 0}>
+            </Typography>
+            <Typography
+              component="span"
+              onClick={onClearSelectedQuestions}
+              sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#4A7A8A", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
+            >
               Bỏ chọn
-            </Button>
-            <Button size="small" variant="text" onClick={onSelectPreviousQuestion} disabled={selectedQuestionIds.length === 0}>
-              Câu trước
-            </Button>
-            <Button size="small" variant="text" onClick={onSelectNextQuestion} disabled={selectedQuestionIds.length === 0}>
-              Câu kế
-            </Button>
+            </Typography>
           </Stack>
-          <Typography variant="caption" sx={{ display: "block", mb: 1, color: "text.secondary" }}>
-            Đã chọn sẵn: {selectedQuestionIds.length} câu
-          </Typography>
-          <List sx={{ maxHeight: 380, overflow: "auto", bgcolor: "background.paper", borderRadius: 2 }}>
+          <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+            <Typography
+              component="span"
+              onClick={onSelectPreviousQuestion}
+              sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#1A8C8E", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
+            >
+              ◀ Câu trước
+            </Typography>
+            <Typography
+              component="span"
+              onClick={onSelectNextQuestion}
+              sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#1A8C8E", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
+            >
+              Câu kế ▶
+            </Typography>
+          </Stack>
+          <List sx={{ maxHeight: 380, overflow: "auto", bgcolor: "background.paper", borderRadius: 2, border: "1px solid rgba(184,217,236,0.3)" }}>
             {questions.map((q) => (
-              <ListItemButton key={q.id} selected={selectedQuestionId === q.id} onClick={() => onSelectQuestion(q.id)}>
+              <ListItemButton
+                key={q.id}
+                selected={selectedQuestionId === q.id}
+                onClick={() => onSelectQuestion(q.id)}
+                sx={{
+                  borderLeft: selectedQuestionId === q.id ? "4px solid #1A8C8E" : "4px solid transparent",
+                  "&.Mui-selected": { bgcolor: "rgba(26,140,142,0.06)" }
+                }}
+              >
                 <ListItemText primary={`Q${q.orderNum}: ${q.content}`} />
               </ListItemButton>
             ))}
@@ -130,7 +151,30 @@ export const ExamControlRoom = ({
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h6">Điều khiển trạng thái</Typography>
+          <Typography variant="h6" sx={{ color: "#0F6B6D" }}>Điều khiển trạng thái</Typography>
+          <Stack direction="row" spacing={1} sx={{ mt: 1.5, mb: 1.5, flexWrap: "wrap" }}>
+            <Typography
+              component="span"
+              onClick={onShowRules}
+              sx={{ cursor: pendingAction ? "default" : "pointer", fontSize: "0.8rem", color: pendingAction ? "#B8D9EC" : "#1A8C8E", fontWeight: 700, px: 1.5, py: 0.5, borderRadius: 2, border: "1px solid rgba(26,140,142,0.2)", "&:hover": pendingAction ? {} : { bgcolor: "rgba(26,140,142,0.06)" } }}
+            >
+              📜 Hiển thị Thể lệ
+            </Typography>
+            <Typography
+              component="span"
+              onClick={onShowTeamList}
+              sx={{ cursor: pendingAction ? "default" : "pointer", fontSize: "0.8rem", color: pendingAction ? "#B8D9EC" : "#1A8C8E", fontWeight: 700, px: 1.5, py: 0.5, borderRadius: 2, border: "1px solid rgba(26,140,142,0.2)", "&:hover": pendingAction ? {} : { bgcolor: "rgba(26,140,142,0.06)" } }}
+            >
+              👥 Hiển thị Đội thi
+            </Typography>
+            <Typography
+              component="span"
+              onClick={questionAudioUrl ? onReplayQuestionAudio : undefined}
+              sx={{ cursor: questionAudioUrl ? "pointer" : "default", fontSize: "0.8rem", color: questionAudioUrl ? "#1A8C8E" : "#B8D9EC", fontWeight: 700, px: 1.5, py: 0.5, borderRadius: 2, border: "1px solid rgba(26,140,142,0.2)", "&:hover": questionAudioUrl ? { bgcolor: "rgba(26,140,142,0.06)" } : {} }}
+            >
+              🔊 Phát lại âm thanh
+            </Typography>
+          </Stack>
           <LiveButtons
             screen={currentScreen}
             pendingAction={pendingAction}
