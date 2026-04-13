@@ -89,6 +89,7 @@ export const QuestionForm = ({
           <Stack sx={{ mb: 2, alignItems: "center" }}>
             <Box
               component="img"
+              key={`${question.id}-${question.imageUrl}`}
               src={resolveMediaUrl(question.imageUrl)}
               alt="Hình minh họa câu hỏi"
               sx={{
@@ -98,6 +99,10 @@ export const QuestionForm = ({
                 borderRadius: 3,
                 objectFit: "contain",
                 boxShadow: "0 12px 28px rgba(15, 23, 42, 0.14)"
+              }}
+              onError={(event) => {
+                const target = event.currentTarget;
+                target.style.display = "none";
               }}
             />
           </Stack>

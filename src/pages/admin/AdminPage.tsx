@@ -59,6 +59,7 @@ export const AdminPage = () => {
   const [isRulesLoading, setIsRulesLoading] = useState(false);
   const [isSavingRules, setIsSavingRules] = useState(false);
   const [activeView, setActiveView] = useState<AdminView>("welcome");
+  const [activeTeamIds, setActiveTeamIds] = useState<number[]>([]);
   const adminAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const authHeaders = useMemo(
@@ -197,6 +198,12 @@ export const AdminPage = () => {
 
   const visibleAudioQuestion = useMemo(() => {
     if (!question?.audioUrl) return null;
+    if (!["question", "countdown", "reveal"].includes(screen)) return null;
+    return question;
+  }, [question, screen]);
+
+  const visibleImageQuestion = useMemo(() => {
+    if (!question?.imageUrl) return null;
     if (!["question", "countdown", "reveal"].includes(screen)) return null;
     return question;
   }, [question, screen]);
@@ -431,14 +438,14 @@ export const AdminPage = () => {
           <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
             <Stack spacing={2}>
               <Typography variant="h6" sx={{ fontWeight: 800, color: "#0F6B6D" }}>
-                Nội dung thể lệ cuộc thi
+                N?i dung th? l? cu?c thi
               </Typography>
               <TextField
                 multiline
                 rows={12}
                 value={rulesDraft}
                 onChange={(e) => setRulesDraft(e.target.value)}
-                placeholder="Nhập thể lệ cuộc thi để hiển thị trên màn hình LED..."
+                placeholder="Nh?p th? l? cu?c thi ?? hi?n th? tr?n m?n h?nh LED..."
                 fullWidth
                 disabled={isRulesLoading || isSavingRules}
               />
@@ -454,7 +461,7 @@ export const AdminPage = () => {
                         { rulesContent: rulesDraft },
                         { headers: { Authorization: `Bearer ${adminToken}` } }
                       );
-                      setToast({ open: true, message: "Đã lưu thể lệ cuộc thi" });
+                      setToast({ open: true, message: "?? l?u th? l? cu?c thi" });
                     } finally {
                       setIsSavingRules(false);
                     }
@@ -462,13 +469,18 @@ export const AdminPage = () => {
                   disabled={isRulesLoading || isSavingRules}
                   sx={{ background: "linear-gradient(135deg, #1A8C8E, #0F6B6D)", "&:hover": { background: "linear-gradient(135deg, #0F6B6D, #0A5557)" } }}
                 >
-                  Lưu thể lệ
+                  L?u th? l?
                 </Button>
-                <Button variant="outlined" onClick={() => withAck("Hiển thị thể lệ", "admin:set-screen", { screen: "rules" })} disabled={!!pendingAction} sx={{ borderColor: "#D4A741", color: "#D4A741", "&:hover": { borderColor: "#B8922E", bgcolor: "rgba(212,167,65,0.06)" } }}>
-                  Hiển thị lên LED
+                <Button
+                  variant="outlined"
+                  onClick={() => withAck("Hi?n th? th? l?", "admin:set-screen", { screen: "rules" })}
+                  disabled={!!pendingAction}
+                  sx={{ borderColor: "#D4A741", color: "#D4A741", "&:hover": { borderColor: "#B8922E", bgcolor: "rgba(212,167,65,0.06)" } }}
+                >
+                  Hi?n th? l?n LED
                 </Button>
                 <Button variant="text" onClick={() => void loadRules()} disabled={isRulesLoading || isSavingRules}>
-                  Tải lại
+                  T?i l?i
                 </Button>
               </Stack>
             </Stack>
@@ -480,11 +492,34 @@ export const AdminPage = () => {
     if (activeView === "control") {
       return (
         <Stack spacing={2}>
+          {visibleImageQuestion?.imageUrl && (
+            <Card>
+              <CardContent>
+                <Typography variant="body2" sx={{ color: "#4A7A8A", mb: 1 }}>
+                  H?nh ?nh c?u h?i hi?n t?i
+                </Typography>
+                <Box
+                  component="img"
+                  key={`${visibleImageQuestion.id}-${visibleImageQuestion.imageUrl}`}
+                  src={resolveMediaUrl(visibleImageQuestion.imageUrl)}
+                  alt="H?nh minh h?a c?u h?i"
+                  sx={{
+                    display: "block",
+                    width: "100%",
+                    maxHeight: 280,
+                    objectFit: "contain",
+                    borderRadius: 3,
+                    background: "rgba(255,255,255,0.04)"
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
           {visibleAudioQuestion?.audioUrl && (
             <Card>
               <CardContent>
                 <Typography variant="body2" sx={{ color: "#4A7A8A", mb: 1 }}>
-                  🔊 Âm thanh câu hỏi hiện tại
+                  ?m thanh c?u h?i hi?n t?i
                 </Typography>
                 <audio ref={adminAudioRef} controls autoPlay src={resolveMediaUrl(visibleAudioQuestion.audioUrl)} style={{ width: "100%" }} />
               </CardContent>
@@ -494,6 +529,8 @@ export const AdminPage = () => {
             currentScreen={screen}
             examSets={examSets}
             questions={questions}
+            teams={teams.map((t) => ({ id: t.id, name: t.name }))}
+            activeTeamIds={activeTeamIds}
             selectedExamSetId={selectedExamSetId}
             selectedQuestionId={selectedQuestionId}
             selectedQuestionIds={selectedQuestionIds}
@@ -503,27 +540,36 @@ export const AdminPage = () => {
               setSelectedQuestionIds([]);
               setSelectedQuestionId(null);
               await loadQuestions(examSetId);
-              await withAck("Chọn bộ đề", "admin:select-exam-set", { examSetId });
+              await withAck("Ch?n b? ??", "admin:select-exam-set", { examSetId });
             }}
             onSelectQuestion={(questionId) => {
               setSelectedQuestionId(questionId);
               setSelectedQuestionIds((prev) => (prev.includes(questionId) ? prev : [...prev, questionId]));
             }}
-            onGoWaiting={() => withAck("Vào màn chờ", "admin:set-screen", { screen: "waiting" })}
+            onToggleTeam={(teamId) => {
+              setActiveTeamIds((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]));
+            }}
+            onSelectAllTeams={() => setActiveTeamIds(teams.map((t) => t.id))}
+            onClearTeams={() => setActiveTeamIds([])}
+            onGoWaiting={() => withAck("V?o m?n ch?", "admin:set-screen", { screen: "waiting" })}
             onResetSession={async () => {
-              const confirmed = window.confirm("Reset sẽ xóa trạng thái câu đang chạy và dừng countdown. Tiếp tục?");
+              const confirmed = window.confirm("Reset s? x?a tr?ng th?i c?u ?ang ch?y v? d?ng countdown. Ti?p t?c?");
               if (!confirmed) return;
-              await withAck("Reset phiên thi", "admin:reset-session", {});
+              await withAck("Reset phi?n thi", "admin:reset-session", {});
               setSelectedQuestionId(null);
               setSelectedQuestionIds([]);
             }}
-            onShowQuestion={() => withAck("Hiển thị câu hỏi", "admin:show-question", { questionId: selectedQuestionId })}
-            onStartCountdown={() => withAck("Bắt đầu đếm ngược", "admin:start-countdown", { questionId: selectedQuestionId })}
+            onShowQuestion={() => withAck("Hi?n th? c?u h?i", "admin:show-question", { questionId: selectedQuestionId })}
+            onStartCountdown={() => withAck("B?t ??u ??m ng??c", "admin:start-countdown", { questionId: selectedQuestionId })}
             onStopShowAnswer={stopAndAutoNext}
-            onShowTeamScore={() => withAck("Hiển thị điểm đội", "admin:show-team-score", { examSetId: selectedExamSetId })}
-            onShowLeaderboard={() => withAck("Hiển thị bảng xếp hạng", "admin:show-leaderboard", {})}
-            onShowRules={() => withAck("Hiển thị thể lệ", "admin:set-screen", { screen: "rules" })}
-            onShowTeamList={() => withAck("Hiển thị đội thi", "admin:set-screen", { screen: "team_list" })}
+            onShowTeamScore={() =>
+              withAck("Hi?n th? ?i?m ??i", "admin:show-team-score", { examSetId: selectedExamSetId, teamIds: activeTeamIds.length > 0 ? activeTeamIds : undefined })
+            }
+            onShowLeaderboard={() =>
+              withAck("Hi?n th? b?ng x?p h?ng", "admin:show-leaderboard", { teamIds: activeTeamIds.length > 0 ? activeTeamIds : undefined })
+            }
+            onShowRules={() => withAck("Hi?n th? th? l?", "admin:set-screen", { screen: "rules" })}
+            onShowTeamList={() => withAck("Hi?n th? ??i thi", "admin:set-screen", { screen: "team_list", teamIds: activeTeamIds.length > 0 ? activeTeamIds : undefined })}
             onSelectAllQuestions={() => {
               const ids = questions.map((q) => q.id);
               setSelectedQuestionIds(ids);

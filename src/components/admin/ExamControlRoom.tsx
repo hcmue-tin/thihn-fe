@@ -1,19 +1,26 @@
-import { Box, Card, CardContent, Grid, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Chip, Grid, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import type { ContestScreen, QuestionPayload } from "../../types/realtime";
 import { LiveButtons } from "./LiveButtons";
 
 type ExamSet = { id: number; name: string; orderNum: number };
 
+type Team = { id: number; name: string };
+
 type ExamControlRoomProps = {
   currentScreen: ContestScreen;
   examSets: ExamSet[];
   questions: QuestionPayload[];
+  teams: Team[];
+  activeTeamIds: number[];
   selectedExamSetId: number | null;
   selectedQuestionId: number | null;
   selectedQuestionIds: number[];
   pendingAction: boolean;
   onSelectExamSet: (examSetId: number) => void;
   onSelectQuestion: (questionId: number) => void;
+  onToggleTeam: (teamId: number) => void;
+  onSelectAllTeams: () => void;
+  onClearTeams: () => void;
   onGoWaiting: () => void;
   onResetSession: () => void;
   onShowQuestion: () => void;
@@ -35,12 +42,17 @@ export const ExamControlRoom = ({
   currentScreen,
   examSets,
   questions,
+  teams,
+  activeTeamIds,
   selectedExamSetId,
   selectedQuestionId,
   selectedQuestionIds,
   pendingAction,
   onSelectExamSet,
   onSelectQuestion,
+  onToggleTeam,
+  onSelectAllTeams,
+  onClearTeams,
   onGoWaiting,
   onResetSession,
   onShowQuestion,
@@ -71,6 +83,48 @@ export const ExamControlRoom = ({
         </Box>
       </Box>
 
+      {/* Team selection */}
+      <Box sx={{ mb: 2, p: 2, borderRadius: 3, border: "1px solid rgba(212,167,65,0.2)", bgcolor: "rgba(212,167,65,0.03)" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: "#D4A741" }}>👥 Đội tham gia vòng thi</Typography>
+          <Typography variant="caption" sx={{ color: "#4A7A8A" }}>({activeTeamIds.length}/{teams.length} đội)</Typography>
+          <Box sx={{ flex: 1 }} />
+          <Typography
+            component="span"
+            onClick={onSelectAllTeams}
+            sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#1A8C8E", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
+          >
+            Chọn tất cả
+          </Typography>
+          <Typography
+            component="span"
+            onClick={onClearTeams}
+            sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#4A7A8A", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
+          >
+            Bỏ chọn
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {teams.map((t) => {
+            const isActive = activeTeamIds.includes(t.id);
+            return (
+              <Chip
+                key={t.id}
+                label={t.name}
+                onClick={() => onToggleTeam(t.id)}
+                sx={{
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  bgcolor: isActive ? "#D4A741" : "rgba(184,217,236,0.15)",
+                  color: isActive ? "#FFFFFF" : "#4A7A8A",
+                  border: isActive ? "1px solid #D4A741" : "1px solid rgba(184,217,236,0.3)",
+                  "&:hover": { bgcolor: isActive ? "#B8922E" : "rgba(184,217,236,0.3)" }
+                }}
+              />
+            );
+          })}
+        </Box>
+      </Box>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography variant="h6" sx={{ color: "#0F6B6D" }}>Chọn câu hỏi</Typography>

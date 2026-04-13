@@ -13,9 +13,12 @@ export const getBackendBaseUrl = (): string => {
 
 export const resolveMediaUrl = (url?: string | null): string => {
   if (!url) return "";
-  if (/^https?:\/\//i.test(url)) return url;
-  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
-  return `${getBackendBaseUrl()}${normalizedPath}`;
+  const normalizedInput = url.trim().replace(/\\/g, "/");
+  if (/^https?:\/\//i.test(normalizedInput)) {
+    return normalizedInput;
+  }
+  const normalizedPath = normalizedInput.startsWith("/") ? normalizedInput : `/${normalizedInput}`;
+  return new URL(normalizedPath, `${getBackendBaseUrl()}/`).toString();
 };
 
 api.interceptors.request.use((config) => {
