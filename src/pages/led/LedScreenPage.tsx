@@ -22,6 +22,11 @@ const slideIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
+const correctBlink = keyframes`
+  0%, 100% { background: rgba(21,128,61,0.05); border-color: rgba(21,128,61,0.3); }
+  50% { background: rgba(21,128,61,0.25); border-color: rgba(21,128,61,0.8); box-shadow: 0 0 16px rgba(21,128,61,0.4); transform: scale(1.02); }
+`;
+
 const ScreenRoot = styled(Box)({
   minHeight: "100svh",
   width: "100vw",
@@ -195,105 +200,212 @@ export const LedScreenPage = () => {
           </Typography>
         </Box>
 
-        {(screen === "question" || screen === "countdown" || screen === "reveal") && question && (
-          <Fade in timeout={450}>
-            <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", display: "flex", flexDirection: "column", gap: { xs: 1.25, md: 2 } }}>
-              <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
-                <Typography
-                  component="div"
+        {(screen === "question" || screen === "countdown" || screen === "reveal") && (
+          <Box sx={{ width: "100%", maxWidth: { xs: "100%", lg: 1536 }, mx: "auto", display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: { xs: 2, lg: 3 }, alignItems: "flex-start" }}>
+            {/* Cột trái: Kết quả từng thí sinh */}
+            {screen === "reveal" && answerResults && (
+              <Fade in timeout={420}>
+                <GlassCard
                   sx={{
-                    fontWeight: 800,
-                    color: "#1A3A4A",
-                    textAlign: "center",
-                    fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.4rem" },
-                    lineHeight: 1.2
+                    width: { lg: "40%", xl: "35%" },
+                    flexShrink: 0,
+                    p: { xs: 1.75, md: 2.5 },
+                    borderRadius: { xs: 3, md: 4 }
                   }}
                 >
-                  {question.content}
-                </Typography>
-                {question.imageUrl && (
-                  <Box
-                    component="img"
-                    key={`${question.id}-${question.imageUrl}`}
-                    src={resolveMediaUrl(question.imageUrl)}
-                    alt="Hình minh họa câu hỏi"
-                    sx={{
-                      mt: 2.5,
-                      display: "block",
-                      mx: "auto",
-                      maxWidth: "100%",
-                      maxHeight: 400,
-                      borderRadius: 3,
-                      objectFit: "contain",
-                      boxShadow: "0 18px 36px rgba(15, 23, 42, 0.16)"
-                    }}
-                    onError={(event) => {
-                      const target = event.currentTarget;
-                      target.style.display = "none";
-                    }}
-                  />
-                )}
-                {question.audioUrl && (
-                  <Box
-                    component="audio"
-                    key={`${question.id}-${question.audioUrl}`}
-                    controls
-                    autoPlay
-                    src={resolveMediaUrl(question.audioUrl)}
-                    sx={{ mt: 2.5, width: "100%" }}
-                  />
-                )}
-              </GlassCard>
-
-              <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1, sm: 1.2, md: 1.8 } }}>
-                {options.map((opt) => (
-                  <OptionCard
-                    key={opt.id}
-                    highlighted={screen === "reveal" && reveal?.correctOptionIds.includes(opt.id)}
-                    sx={{ p: { xs: 1.4, sm: 1.7, md: 2.5 }, borderRadius: { xs: 3, md: 4 } }}
-                  >
-                    <Typography
-                      component="div"
+                  <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1.05rem", md: "1.25rem" } }}>
+                    Kết quả thí sinh
+                  </Typography>
+                  <Box sx={{ mt: 1.75, display: "grid", gap: 1 }}>
+                    <Box
                       sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
+                        gap: 1,
+                        px: 1.5,
+                        color: "#4b647c",
                         fontWeight: 800,
-                        color: "#17324d",
-                        fontSize: { xs: "1.2rem", sm: "1.45rem", md: "1.9rem" },
-                        lineHeight: 1.25,
-                        textAlign: "center"
+                        fontSize: { xs: "0.82rem", md: "0.92rem" }
                       }}
                     >
-                      {opt.label}. {opt.content}
-                    </Typography>
-                  </OptionCard>
-                ))}
-              </Box>
-            </Box>
-          </Fade>
-        )}
+                      <Box>Thí sinh</Box>
+                      <Box>Đội</Box>
+                      <Box>Kết quả</Box>
+                      <Box>Điểm</Box>
+                    </Box>
+                    {answerResults.results.slice(0, 10).map((row) => (
+                      <Box
+                        key={`${row.contestantId}-${row.teamName}`}
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
+                          gap: 1,
+                          alignItems: "center",
+                          p: 1.5,
+                          borderRadius: 2.5,
+                          background: "rgba(255,255,255,0.56)",
+                          border: "1px solid rgba(111, 165, 207, 0.18)",
+                          ...(row.isCorrect && {
+                            animation: `${correctBlink} 1.5s infinite ease-in-out`
+                          })
+                        }}
+                      >
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {row.contestantName}
+                        </Typography>
+                        <Typography component="div" sx={{ color: "#4b647c", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {row.teamName}
+                        </Typography>
+                        <Typography component="div" sx={{ fontWeight: 900, color: row.isCorrect ? "#15803d" : "#b91c1c" }}>
+                          {row.isCorrect ? "✅ Đúng" : "❌ Sai"}
+                        </Typography>
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d" }}>
+                          {row.scoreEarned}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </GlassCard>
+              </Fade>
+            )}
 
-        {screen === "countdown" && (
-          <Box sx={{ mt: { xs: 0.5, md: 1 }, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Box sx={{ position: "relative", display: "inline-flex", animation: `${pulse} 2.4s infinite` }}>
-              <CircularProgress
-                variant="determinate"
-                value={progress}
-                size="clamp(170px, 24vw, 220px)"
-                thickness={3.2}
-                sx={{ color: "#D4A741", filter: "drop-shadow(0 12px 32px rgba(212,167,65,0.22))" }}
-              />
-              <Box
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}
-              >
-                <Typography component="div" sx={{ fontWeight: 900, color: "#1A3A4A", fontSize: { xs: "2.4rem", sm: "3rem", md: "3.75rem" } }}>
-                  {remainingSeconds}
-                </Typography>
-              </Box>
+            {/* Cột phải: Câu hỏi, tuỳ chọn, banner đáp án */}
+            <Box sx={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", gap: { xs: 1.5, md: 2 } }}>
+              {question && (
+                <Fade in timeout={450}>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1.25, md: 2 } }}>
+                    <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
+                      <Typography
+                        component="div"
+                        sx={{
+                          fontWeight: 800,
+                          color: "#1A3A4A",
+                          textAlign: "center",
+                          fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.4rem" },
+                          lineHeight: 1.2
+                        }}
+                      >
+                        {question.content}
+                      </Typography>
+                      {question.imageUrl && (
+                        <Box
+                          component="img"
+                          key={`${question.id}-${question.imageUrl}`}
+                          src={resolveMediaUrl(question.imageUrl)}
+                          alt="Hình minh họa câu hỏi"
+                          sx={{
+                            mt: 2.5,
+                            display: "block",
+                            mx: "auto",
+                            maxWidth: "100%",
+                            maxHeight: 400,
+                            borderRadius: 3,
+                            objectFit: "contain",
+                            boxShadow: "0 18px 36px rgba(15, 23, 42, 0.16)"
+                          }}
+                          onError={(event) => {
+                            const target = event.currentTarget;
+                            target.style.display = "none";
+                          }}
+                        />
+                      )}
+                      {question.audioUrl && (
+                        <Box
+                          component="audio"
+                          key={`${question.id}-${question.audioUrl}`}
+                          controls
+                          autoPlay
+                          src={resolveMediaUrl(question.audioUrl)}
+                          sx={{ mt: 2.5, width: "100%" }}
+                        />
+                      )}
+                    </GlassCard>
+
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1, sm: 1.2, md: 1.8 } }}>
+                      {options.map((opt) => (
+                        <OptionCard
+                          key={opt.id}
+                          highlighted={screen === "reveal" && reveal?.correctOptionIds.includes(opt.id)}
+                          sx={{ p: { xs: 1.4, sm: 1.7, md: 2.5 }, borderRadius: { xs: 3, md: 4 } }}
+                        >
+                          <Typography
+                            component="div"
+                            sx={{
+                              fontWeight: 800,
+                              color: "#17324d",
+                              fontSize: { xs: "1.2rem", sm: "1.45rem", md: "1.9rem" },
+                              lineHeight: 1.25,
+                              textAlign: "center"
+                            }}
+                          >
+                            {opt.label}. {opt.content}
+                          </Typography>
+                        </OptionCard>
+                      ))}
+                    </Box>
+                  </Box>
+                </Fade>
+              )}
+
+              {screen === "countdown" && (
+                <Box sx={{ mt: { xs: 0.5, md: 1 }, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Box sx={{ position: "relative", display: "inline-flex", animation: `${pulse} 2.4s infinite` }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={progress}
+                      size="clamp(170px, 24vw, 220px)"
+                      thickness={3.2}
+                      sx={{ color: "#D4A741", filter: "drop-shadow(0 12px 32px rgba(212,167,65,0.22))" }}
+                    />
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      <Typography component="div" sx={{ fontWeight: 900, color: "#1A3A4A", fontSize: { xs: "2.4rem", sm: "3rem", md: "3.75rem" } }}>
+                        {remainingSeconds}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+
+              {screen === "reveal" && reveal && (
+                <Fade in timeout={500}>
+                  <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
+                    <Typography component="div" sx={{ fontWeight: 800, color: "#1f73b7", fontSize: { xs: "1.2rem", sm: "1.35rem", md: "1.6rem" } }}>
+                      Đáp án đã được công bố
+                    </Typography>
+                    <Typography sx={{ mt: 1, color: "#23415f", fontSize: { xs: "0.98rem", md: "1.05rem" } }}>
+                      Số bài đúng: {reveal.stats.correct ?? 0}/{reveal.stats.total ?? 0} ({reveal.stats.correctRate ?? 0}%)
+                    </Typography>
+                    {revealDetailText.length > 0 && (
+                      <Box
+                        sx={{
+                          mt: 2,
+                          p: 2,
+                          borderRadius: 2,
+                          background: "rgba(255,190,58,0.14)",
+                          border: "1px solid rgba(255,180,43,0.36)"
+                        }}
+                      >
+                        <Typography component="div" sx={{ fontWeight: 800, mb: 1, color: "#11416f", fontSize: { xs: "1rem", md: "1.15rem" } }}>
+                          Đáp án chi tiết
+                        </Typography>
+                        {revealDetailText.map((line) => (
+                          <Typography key={line} sx={{ opacity: 0.95, color: "#23415f", fontSize: { xs: "0.95rem", md: "1rem" } }}>
+                            {line}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </GlassCard>
+                </Fade>
+              )}
             </Box>
           </Box>
         )}
@@ -356,100 +468,6 @@ export const LedScreenPage = () => {
               </GlassCard>
             ))}
           </Box>
-        )}
-
-        {screen === "reveal" && reveal && (
-          <Fade in timeout={500}>
-            <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", display: "grid", gap: { xs: 1.5, md: 2 } }}>
-              <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
-                <Typography component="div" sx={{ fontWeight: 800, color: "#1f73b7", fontSize: { xs: "1.2rem", sm: "1.35rem", md: "1.6rem" } }}>
-                  Đáp án đã được công bố
-                </Typography>
-                <Typography sx={{ mt: 1, color: "#23415f", fontSize: { xs: "0.98rem", md: "1.05rem" } }}>
-                  Số bài đúng: {reveal.stats.correct ?? 0}/{reveal.stats.total ?? 0} ({reveal.stats.correctRate ?? 0}%)
-                </Typography>
-                {revealDetailText.length > 0 && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      background: "rgba(255,190,58,0.14)",
-                      border: "1px solid rgba(255,180,43,0.36)"
-                    }}
-                  >
-                    <Typography component="div" sx={{ fontWeight: 800, mb: 1, color: "#11416f", fontSize: { xs: "1rem", md: "1.15rem" } }}>
-                      Đáp án chi tiết
-                    </Typography>
-                    {revealDetailText.map((line) => (
-                      <Typography key={line} sx={{ opacity: 0.95, color: "#23415f", fontSize: { xs: "0.95rem", md: "1rem" } }}>
-                        {line}
-                      </Typography>
-                    ))}
-                  </Box>
-                )}
-              </GlassCard>
-              {answerResults && (
-                <GlassCard
-                  sx={{
-                    p: { xs: 1.75, md: 2.5 },
-                    borderRadius: { xs: 3, md: 4 },
-                    animation: `${slideIn} 420ms ease-out`
-                  }}
-                >
-                  <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1.05rem", md: "1.25rem" } }}>
-                    Kết quả từng thí sinh
-                  </Typography>
-                  <Box sx={{ mt: 1.75, display: "grid", gap: 1 }}>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
-                        gap: 1,
-                        px: 1.5,
-                        color: "#4b647c",
-                        fontWeight: 800,
-                        fontSize: { xs: "0.82rem", md: "0.92rem" }
-                      }}
-                    >
-                      <Box>Thí sinh</Box>
-                      <Box>Đội</Box>
-                      <Box>Kết quả</Box>
-                      <Box>Điểm</Box>
-                    </Box>
-                    {answerResults.results.map((row) => (
-                      <Box
-                        key={`${row.contestantId}-${row.teamName}`}
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
-                          gap: 1,
-                          alignItems: "center",
-                          p: 1.5,
-                          borderRadius: 2.5,
-                          background: "rgba(255,255,255,0.56)",
-                          border: "1px solid rgba(111, 165, 207, 0.18)"
-                        }}
-                      >
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d" }}>
-                          {row.contestantName}
-                        </Typography>
-                        <Typography component="div" sx={{ color: "#4b647c" }}>
-                          {row.teamName}
-                        </Typography>
-                        <Typography component="div" sx={{ fontWeight: 900, color: row.isCorrect ? "#15803d" : "#b91c1c" }}>
-                          {row.isCorrect ? "✅ Đúng" : "❌ Sai"}
-                        </Typography>
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d" }}>
-                          {row.scoreEarned}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </GlassCard>
-              )}
-            </Box>
-          </Fade>
         )}
 
         {screen === "team_score" && teamScore && (
