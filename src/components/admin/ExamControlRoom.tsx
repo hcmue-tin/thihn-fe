@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Chip, Grid, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Chip, Grid, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import NavigateBeforeRoundedIcon from "@mui/icons-material/NavigateBeforeRounded";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
@@ -233,14 +233,16 @@ export const ExamControlRoom = ({
               <GroupsRoundedIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
               Hiển thị Đội thi
             </Typography>
-            <Typography
-              component="span"
-              onClick={questionAudioUrl ? onReplayQuestionAudio : undefined}
-              sx={{ cursor: questionAudioUrl ? "pointer" : "default", fontSize: "0.8rem", color: questionAudioUrl ? "#1A8C8E" : "#B8D9EC", fontWeight: 700, px: 1.5, py: 0.5, borderRadius: 2, border: "1px solid rgba(26,140,142,0.2)", "&:hover": questionAudioUrl ? { bgcolor: "rgba(26,140,142,0.06)" } : {} }}
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onReplayQuestionAudio}
+              disabled={!questionAudioUrl}
+              startIcon={<VolumeUpRoundedIcon fontSize="small" />}
+              sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
             >
-              <VolumeUpRoundedIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
-              Phát lại âm thanh
-            </Typography>
+              Phát âm thanh LED
+            </Button>
           </Stack>
           <LiveButtons
             screen={currentScreen}
