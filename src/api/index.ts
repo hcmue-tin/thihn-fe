@@ -2,12 +2,12 @@ import axios from "axios";
 import { clearAllSessions } from "../auth/session";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5126/api",
   timeout: 10000
 });
 
 export const getBackendBaseUrl = (): string => {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5126/api";
   return apiBaseUrl.replace(/\/api\/?$/, "");
 };
 

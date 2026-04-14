@@ -171,7 +171,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     const socketBaseUrl =
       import.meta.env.VITE_SOCKET_URL ||
       (typeof import.meta.env.VITE_API_BASE_URL === "string" ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "") : "") ||
-      "http://localhost:5000";
+      "http://localhost:5126";
     const socket = io(socketBaseUrl, {
       // NAS/reverse-proxy setups may not support websocket upgrade reliably.
       // Keep websocket first, but allow polling fallback.

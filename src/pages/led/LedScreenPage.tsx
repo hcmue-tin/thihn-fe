@@ -69,7 +69,7 @@ const screenTitle: Record<ContestScreen, string> = {
   question: "Câu Hỏi Đang Hiển Thị",
   countdown: "Đếm Ngược",
   reveal: "Công Bố Đáp Án",
-  team_score: "Bảng Điểm Theo Bộ Đề",
+  team_score: "Bảng Điểm Theo Đội",
   leaderboard: "Bảng Xếp Hạng Chung Cuộc"
 };
 
@@ -159,21 +159,47 @@ export const LedScreenPage = () => {
           gap: { xs: 1.5, sm: 2, md: 2.5 }
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Chip
-            label={isConnected ? "Đã kết nối" : "Mất kết nối"}
-            color={isConnected ? "success" : "error"}
-            sx={{
-              fontWeight: 800,
-              bgcolor: "rgba(255,255,255,0.88)",
-              color: isConnected ? "#15803D" : "#DC2626",
-              border: isConnected ? "1px solid rgba(21,128,61,0.2)" : "1px solid rgba(220,38,38,0.2)",
-              backdropFilter: "blur(8px)"
-            }}
-          />
+        <Box sx={{ display: "flex", justifyContent: "flex-end", minHeight: 32 }}>
+          {!isConnected && (
+            <Chip
+              label="Mất kết nối"
+              color="error"
+              sx={{
+                fontWeight: 800,
+                bgcolor: "rgba(255,255,255,0.88)",
+                color: "#DC2626",
+                border: "1px solid rgba(220,38,38,0.2)",
+                backdropFilter: "blur(8px)"
+              }}
+            />
+          )}
         </Box>
 
-        <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", textAlign: "center" }}>
+        <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", textAlign: "center", position: "relative" }}>
+          {screen === "countdown" && (
+            <Box
+              sx={{
+                position: "absolute",
+                left: { xs: "-5%", sm: "0%", md: "5%", lg: "10%" },
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 10
+              }}
+            >
+              <Typography
+                sx={{
+                  fontWeight: 900,
+                  color: "#17324d",
+                  fontSize: { xs: "3.5rem", sm: "4.5rem", md: "5.5rem", lg: "7rem" },
+                  lineHeight: 1,
+                  textShadow: "0 8px 24px rgba(23,50,77,0.15)"
+                }}
+              >
+                {remainingSeconds}
+              </Typography>
+            </Box>
+          )}
+
           <Typography
             component="div"
             sx={{
@@ -220,7 +246,7 @@ export const LedScreenPage = () => {
                     <Box
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
+                        gridTemplateColumns: "1fr",
                         gap: 1,
                         px: 1.5,
                         color: "#4b647c",
@@ -229,16 +255,13 @@ export const LedScreenPage = () => {
                       }}
                     >
                       <Box>Thí sinh</Box>
-                      <Box>Đội</Box>
-                      <Box>Kết quả</Box>
-                      <Box>Điểm</Box>
                     </Box>
                     {answerResults.results.slice(0, 10).map((row) => (
                       <Box
                         key={`${row.contestantId}-${row.teamName}`}
                         sx={{
                           display: "grid",
-                          gridTemplateColumns: { xs: "1.4fr 1fr 0.8fr 0.6fr", md: "1.6fr 1.2fr 0.8fr 0.6fr" },
+                          gridTemplateColumns: "1fr",
                           gap: 1,
                           alignItems: "center",
                           p: 1.5,
@@ -250,17 +273,8 @@ export const LedScreenPage = () => {
                           })
                         }}
                       >
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
                           {row.contestantName}
-                        </Typography>
-                        <Typography component="div" sx={{ color: "#4b647c", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {row.teamName}
-                        </Typography>
-                        <Typography component="div" sx={{ fontWeight: 900, color: row.isCorrect ? "#15803d" : "#b91c1c" }}>
-                          {row.isCorrect ? "✅ Đúng" : "❌ Sai"}
-                        </Typography>
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d" }}>
-                          {row.scoreEarned}
                         </Typography>
                       </Box>
                     ))}
@@ -347,65 +361,7 @@ export const LedScreenPage = () => {
                 </Fade>
               )}
 
-              {screen === "countdown" && (
-                <Box sx={{ mt: { xs: 0.5, md: 1 }, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Box sx={{ position: "relative", display: "inline-flex", animation: `${pulse} 2.4s infinite` }}>
-                    <CircularProgress
-                      variant="determinate"
-                      value={progress}
-                      size="clamp(170px, 24vw, 220px)"
-                      thickness={3.2}
-                      sx={{ color: "#D4A741", filter: "drop-shadow(0 12px 32px rgba(212,167,65,0.22))" }}
-                    />
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
-                      }}
-                    >
-                      <Typography component="div" sx={{ fontWeight: 900, color: "#1A3A4A", fontSize: { xs: "2.4rem", sm: "3rem", md: "3.75rem" } }}>
-                        {remainingSeconds}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              )}
 
-              {screen === "reveal" && reveal && (
-                <Fade in timeout={500}>
-                  <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
-                    <Typography component="div" sx={{ fontWeight: 800, color: "#1f73b7", fontSize: { xs: "1.2rem", sm: "1.35rem", md: "1.6rem" } }}>
-                      Đáp án đã được công bố
-                    </Typography>
-                    <Typography sx={{ mt: 1, color: "#23415f", fontSize: { xs: "0.98rem", md: "1.05rem" } }}>
-                      Số bài đúng: {reveal.stats.correct ?? 0}/{reveal.stats.total ?? 0} ({reveal.stats.correctRate ?? 0}%)
-                    </Typography>
-                    {revealDetailText.length > 0 && (
-                      <Box
-                        sx={{
-                          mt: 2,
-                          p: 2,
-                          borderRadius: 2,
-                          background: "rgba(255,190,58,0.14)",
-                          border: "1px solid rgba(255,180,43,0.36)"
-                        }}
-                      >
-                        <Typography component="div" sx={{ fontWeight: 800, mb: 1, color: "#11416f", fontSize: { xs: "1rem", md: "1.15rem" } }}>
-                          Đáp án chi tiết
-                        </Typography>
-                        {revealDetailText.map((line) => (
-                          <Typography key={line} sx={{ opacity: 0.95, color: "#23415f", fontSize: { xs: "0.95rem", md: "1rem" } }}>
-                            {line}
-                          </Typography>
-                        ))}
-                      </Box>
-                    )}
-                  </GlassCard>
-                </Fade>
-              )}
             </Box>
           </Box>
         )}
@@ -444,8 +400,8 @@ export const LedScreenPage = () => {
           >
             {teamList.teams.map((team) => (
               <GlassCard key={team.id} sx={{ p: { xs: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
-                <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1.15rem", md: "1.5rem" } }}>
-                  {team.name}
+                <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1.15rem", md: "1.5rem" }, textAlign: "center" }}>
+                  {team.name.toLowerCase().startsWith('đội') ? team.name : `Đội ${team.name}`}
                 </Typography>
                 <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
                   {team.contestants.length > 0 ? (
@@ -453,9 +409,6 @@ export const LedScreenPage = () => {
                       <Box key={contestant.id} sx={{ p: 1.5, borderRadius: 2.5, background: "rgba(255,255,255,0.52)", border: "1px solid rgba(111, 165, 207, 0.18)" }}>
                         <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.1rem" } }}>
                           {contestant.name}
-                        </Typography>
-                        <Typography component="div" sx={{ mt: 0.35, color: "#4b647c", fontSize: { xs: "0.92rem", md: "1rem" } }}>
-                          {contestant.unit || contestant.code}
                         </Typography>
                       </Box>
                     ))
@@ -474,8 +427,8 @@ export const LedScreenPage = () => {
           <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1080 }, mx: "auto", display: "flex", flexDirection: "column", gap: { xs: 1, md: 1.5 } }}>
             {teamScore.teams.map((team) => (
               <GlassCard key={team.name} sx={{ p: { xs: 1.5, md: 2.2 }, borderRadius: { xs: 3, md: 4 } }}>
-                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                  {team.name} - {team.totalScore} điểm
+                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" }, textAlign: "center" }}>
+                  {team.name.toLowerCase().startsWith('đội') ? team.name : `Đội ${team.name}`} - {team.totalScore} điểm
                 </Typography>
                 {team.contestants && team.contestants.length > 0 && (
                   <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
@@ -553,7 +506,7 @@ export const LedScreenPage = () => {
                       {item.name} - {item.totalScore} điểm
                     </Typography>
                     <Typography component="div" sx={{ mt: 0.25, color: "#4A7A8A", fontSize: { xs: "0.92rem", md: "1rem" } }}>
-                      Đội: {item.team || "Chưa có đội"}
+                      {item.team ? (item.team.toLowerCase().startsWith('đội') ? item.team : `Đội ${item.team}`) : "Chưa có đội"}
                     </Typography>
                   </Box>
                 </Box>
