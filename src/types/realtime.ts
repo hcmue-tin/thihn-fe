@@ -17,6 +17,7 @@ export type ContestState = {
   isCountdownActive: boolean;
   countdownEndAt: string | null;
   rulesContent?: string | null;
+  backgroundUrl?: string | null;
   version: number;
   updatedAt: string;
 };
@@ -76,7 +77,8 @@ export type AnswerResultsPayload = {
     contestantId: number;
     contestantName: string;
     teamName: string;
-    isCorrect: boolean;
+    hasSubmitted: boolean;
+    isCorrect: boolean | null;
     scoreEarned: number;
   }>;
 };

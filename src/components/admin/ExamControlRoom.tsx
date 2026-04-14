@@ -1,4 +1,9 @@
 import { Box, Card, CardContent, Chip, Grid, List, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import NavigateBeforeRoundedIcon from "@mui/icons-material/NavigateBeforeRounded";
+import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import type { ContestScreen, QuestionPayload } from "../../types/realtime";
 import { LiveButtons } from "./LiveButtons";
 
@@ -26,6 +31,7 @@ type ExamControlRoomProps = {
   onShowQuestion: () => void;
   onStartCountdown: () => void;
   onStopShowAnswer: () => void;
+  onRetakeQuestion: () => void;
   onShowTeamScore: () => void;
   onShowLeaderboard: () => void;
   onShowRules: () => void;
@@ -58,6 +64,7 @@ export const ExamControlRoom = ({
   onShowQuestion,
   onStartCountdown,
   onStopShowAnswer,
+  onRetakeQuestion,
   onShowTeamScore,
   onShowLeaderboard,
   onShowRules,
@@ -86,7 +93,10 @@ export const ExamControlRoom = ({
       {/* Team selection */}
       <Box sx={{ mb: 2, p: 2, borderRadius: 3, border: "1px solid rgba(212,167,65,0.2)", bgcolor: "rgba(212,167,65,0.03)" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: "#D4A741" }}>👥 Đội tham gia vòng thi</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: "#D4A741", display: "flex", alignItems: "center", gap: 0.75 }}>
+            <GroupsRoundedIcon fontSize="small" />
+            Đội tham gia vòng thi
+          </Typography>
           <Typography variant="caption" sx={{ color: "#4A7A8A" }}>({activeTeamIds.length}/{teams.length} đội)</Typography>
           <Box sx={{ flex: 1 }} />
           <Typography
@@ -146,7 +156,7 @@ export const ExamControlRoom = ({
             >
               {examSets.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.orderNum}. {s.name}
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -177,14 +187,14 @@ export const ExamControlRoom = ({
               onClick={onSelectPreviousQuestion}
               sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#1A8C8E", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
             >
-              ◀ Câu trước
+              <NavigateBeforeRoundedIcon fontSize="small" sx={{ verticalAlign: "middle" }} /> Câu trước
             </Typography>
             <Typography
               component="span"
               onClick={onSelectNextQuestion}
               sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#1A8C8E", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
             >
-              Câu kế ▶
+              Câu kế <NavigateNextRoundedIcon fontSize="small" sx={{ verticalAlign: "middle" }} />
             </Typography>
           </Stack>
           <List sx={{ maxHeight: 380, overflow: "auto", bgcolor: "background.paper", borderRadius: 2, border: "1px solid rgba(184,217,236,0.3)" }}>
@@ -198,7 +208,7 @@ export const ExamControlRoom = ({
                   "&.Mui-selected": { bgcolor: "rgba(26,140,142,0.06)" }
                 }}
               >
-                <ListItemText primary={`Q${q.orderNum}: ${q.content}`} />
+                <ListItemText primary={q.content} />
               </ListItemButton>
             ))}
           </List>
@@ -212,21 +222,24 @@ export const ExamControlRoom = ({
               onClick={onShowRules}
               sx={{ cursor: pendingAction ? "default" : "pointer", fontSize: "0.8rem", color: pendingAction ? "#B8D9EC" : "#1A8C8E", fontWeight: 700, px: 1.5, py: 0.5, borderRadius: 2, border: "1px solid rgba(26,140,142,0.2)", "&:hover": pendingAction ? {} : { bgcolor: "rgba(26,140,142,0.06)" } }}
             >
-              📜 Hiển thị Thể lệ
+              <DescriptionRoundedIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
+              Hiển thị Thể lệ
             </Typography>
             <Typography
               component="span"
               onClick={onShowTeamList}
               sx={{ cursor: pendingAction ? "default" : "pointer", fontSize: "0.8rem", color: pendingAction ? "#B8D9EC" : "#1A8C8E", fontWeight: 700, px: 1.5, py: 0.5, borderRadius: 2, border: "1px solid rgba(26,140,142,0.2)", "&:hover": pendingAction ? {} : { bgcolor: "rgba(26,140,142,0.06)" } }}
             >
-              👥 Hiển thị Đội thi
+              <GroupsRoundedIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
+              Hiển thị Đội thi
             </Typography>
             <Typography
               component="span"
               onClick={questionAudioUrl ? onReplayQuestionAudio : undefined}
               sx={{ cursor: questionAudioUrl ? "pointer" : "default", fontSize: "0.8rem", color: questionAudioUrl ? "#1A8C8E" : "#B8D9EC", fontWeight: 700, px: 1.5, py: 0.5, borderRadius: 2, border: "1px solid rgba(26,140,142,0.2)", "&:hover": questionAudioUrl ? { bgcolor: "rgba(26,140,142,0.06)" } : {} }}
             >
-              🔊 Phát lại âm thanh
+              <VolumeUpRoundedIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
+              Phát lại âm thanh
             </Typography>
           </Stack>
           <LiveButtons
@@ -239,6 +252,7 @@ export const ExamControlRoom = ({
             onShowQuestion={onShowQuestion}
             onStartCountdown={onStartCountdown}
             onStopShowAnswer={onStopShowAnswer}
+            onRetakeQuestion={onRetakeQuestion}
             onShowTeamScore={onShowTeamScore}
             onShowLeaderboard={onShowLeaderboard}
           />

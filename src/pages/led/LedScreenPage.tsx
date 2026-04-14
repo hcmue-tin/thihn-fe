@@ -1,8 +1,7 @@
-import { Box, Chip, CircularProgress, Fade, Paper, Typography } from "@mui/material";
+import { Box, CircularProgress, Fade, Paper, Typography } from "@mui/material";
 import { keyframes, styled } from "@mui/material/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveMediaUrl } from "../../api";
-import ledBackground from "../../assets/Led.png";
 import { useRealtime } from "../../hooks/useRealtime";
 import type { ContestScreen } from "../../types/realtime";
 
@@ -34,7 +33,7 @@ const ScreenRoot = styled(Box)({
   overflow: "hidden",
   color: "#17324d",
   marginLeft: "calc(50% - 50vw)",
-  backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%), url(${ledBackground})`,
+  backgroundColor: "#EAF3F8",
   backgroundSize: "cover",
   backgroundPosition: "center top",
   backgroundRepeat: "no-repeat"
@@ -61,36 +60,27 @@ const OptionCard = styled(GlassCard, {
     : "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(247,251,255,0.72) 100%)"
 }));
 
-const screenTitle: Record<ContestScreen, string> = {
-  idle: "Chờ Khởi Động Cuộc Thi",
-  waiting: "Chuẩn Bị Cuộc Thi",
-  rules: "Thể Lệ Cuộc Thi",
-  team_list: "Danh Sách Đội Thi",
-  question: "Câu Hỏi Đang Hiển Thị",
-  countdown: "Đếm Ngược",
-  reveal: "Công Bố Đáp Án",
-  team_score: "Bảng Điểm Theo Đội",
-  leaderboard: "Bảng Xếp Hạng Chung Cuộc"
-};
-
 export const LedScreenPage = () => {
   const {
+    socket,
     screen,
     question,
     options,
     countdownEndsAt,
     countdownSeconds,
     rulesContent,
+    backgroundUrl,
     reveal,
     teamList,
     teamScore,
     leaderboard,
     answerResults,
-    isConnected,
     connectSocket
   } =
     useRealtime();
   const [remainingMs, setRemainingMs] = useState(0);
+  const [audioTrigger, setAudioTrigger] = useState(0);
+  const ledAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken") || localStorage.getItem("accessToken");
@@ -115,6 +105,21 @@ export const LedScreenPage = () => {
     return () => cancelAnimationFrame(raf);
   }, [countdownEndsAt]);
 
+  useEffect(() => {
+    if (!socket) return;
+    const handlePlayAudio = (): void => setAudioTrigger((prev) => prev + 1);
+    socket.on("led:play-audio", handlePlayAudio);
+    return () => {
+      socket.off("led:play-audio", handlePlayAudio);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (!question?.audioUrl || !ledAudioRef.current || audioTrigger === 0) return;
+    ledAudioRef.current.currentTime = 0;
+    void ledAudioRef.current.play().catch(() => undefined);
+  }, [audioTrigger, question?.audioUrl]);
+
   const remainingSeconds = Math.ceil(remainingMs / 1000);
 
   const progress = useMemo(() => {
@@ -134,8 +139,16 @@ export const LedScreenPage = () => {
     return [];
   }, [options, question, reveal]);
 
+  const ledBackgroundImage = backgroundUrl ? resolveMediaUrl(backgroundUrl) : "";
+
   return (
-    <ScreenRoot>
+    <ScreenRoot
+      sx={{
+        backgroundImage: ledBackgroundImage
+          ? `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%), url(${ledBackgroundImage})`
+          : "none"
+      }}
+    >
       <Box
         sx={{
           position: "absolute",
@@ -159,30 +172,16 @@ export const LedScreenPage = () => {
           gap: { xs: 1.5, sm: 2, md: 2.5 }
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "flex-end", minHeight: 32 }}>
-          {!isConnected && (
-            <Chip
-              label="Mất kết nối"
-              color="error"
-              sx={{
-                fontWeight: 800,
-                bgcolor: "rgba(255,255,255,0.88)",
-                color: "#DC2626",
-                border: "1px solid rgba(220,38,38,0.2)",
-                backdropFilter: "blur(8px)"
-              }}
-            />
-          )}
-        </Box>
+        <Box sx={{ minHeight: 32 }} />
 
-        <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", textAlign: "center", position: "relative" }}>
+        <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", position: "relative" }}>
           {screen === "countdown" && (
             <Box
               sx={{
                 position: "absolute",
-                left: { xs: "-5%", sm: "0%", md: "5%", lg: "10%" },
+                right: { xs: "-5%", sm: "0%", md: "5%", lg: "10%" },
                 top: "50%",
-                transform: "translate(-50%, -50%)",
+                transform: "translate(50%, -50%)",
                 zIndex: 10
               }}
             >
@@ -199,31 +198,6 @@ export const LedScreenPage = () => {
               </Typography>
             </Box>
           )}
-
-          <Typography
-            component="div"
-            sx={{
-              fontSize: { xs: "2rem", sm: "2.5rem", md: "3.25rem", lg: "4rem" },
-              fontWeight: 900,
-              color: "#0F6B6D",
-              lineHeight: 1.1,
-              textShadow: "0 4px 16px rgba(26,140,142,0.15)"
-            }}
-          >
-            HỆ THỐNG THI HÁN NGỮ
-          </Typography>
-          <Typography
-            component="div"
-            sx={{
-              mt: { xs: 0.75, md: 1.25 },
-              fontSize: { xs: "1.2rem", sm: "1.4rem", md: "1.85rem" },
-              color: "#1A8C8E",
-              letterSpacing: 1,
-              fontWeight: 800
-            }}
-          >
-            {screenTitle[screen]}
-          </Typography>
         </Box>
 
         {(screen === "question" || screen === "countdown" || screen === "reveal") && (
@@ -256,7 +230,7 @@ export const LedScreenPage = () => {
                     >
                       <Box>Thí sinh</Box>
                     </Box>
-                    {answerResults.results.slice(0, 10).map((row) => (
+                    {answerResults.results.map((row) => (
                       <Box
                         key={`${row.contestantId}-${row.teamName}`}
                         sx={{
@@ -268,14 +242,19 @@ export const LedScreenPage = () => {
                           borderRadius: 2.5,
                           background: "rgba(255,255,255,0.56)",
                           border: "1px solid rgba(111, 165, 207, 0.18)",
-                          ...(row.isCorrect && {
+                          ...(row.isCorrect === true && {
                             animation: `${correctBlink} 1.5s infinite ease-in-out`
                           })
                         }}
                       >
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
-                          {row.contestantName}
-                        </Typography>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center" }}>
+                          <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" }}>
+                            {row.contestantName}
+                          </Typography>
+                          <Typography component="div" sx={{ fontWeight: 700, color: row.hasSubmitted ? (row.isCorrect ? "#15803D" : "#DC2626") : "#64748B", fontSize: { xs: "0.8rem", md: "0.9rem" } }}>
+                            {!row.hasSubmitted ? "Chưa làm" : row.isCorrect ? "Đúng" : "Sai"}
+                          </Typography>
+                        </Box>
                       </Box>
                     ))}
                   </Box>
@@ -326,9 +305,9 @@ export const LedScreenPage = () => {
                       {question.audioUrl && (
                         <Box
                           component="audio"
+                          ref={ledAudioRef}
                           key={`${question.id}-${question.audioUrl}`}
                           controls
-                          autoPlay
                           src={resolveMediaUrl(question.audioUrl)}
                           sx={{ mt: 2.5, width: "100%" }}
                         />

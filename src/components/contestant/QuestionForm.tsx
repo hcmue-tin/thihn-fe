@@ -78,6 +78,7 @@ export const QuestionForm = ({
     setSelectedLeftKey("");
     setSelectedRightKey("");
   };
+  const interactionLocked = locked || waitingForCountdown;
 
   return (
     <Card elevation={0} sx={{ backgroundColor: 'transparent' }}>
@@ -107,10 +108,15 @@ export const QuestionForm = ({
             />
           </Stack>
         )}
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="body2">
+            {waitingForCountdown ? "Chưa bắt đầu đếm ngược" : "Đang đếm ngược"}
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {waitingForCountdown ? "--" : `${remainingSeconds}s`}
+          </Typography>
+        </Box>
         <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 10, mb: 2, '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #D4A741, #F5D98A)' }, bgcolor: 'rgba(184,217,236,0.3)' }} />
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          {waitingForCountdown ? "Thời gian còn lại: Chưa bắt đầu đếm ngược" : `Thời gian còn lại: ${remainingSeconds}s`}
-        </Typography>
 
         {(question.type === "single_choice" || question.type === "true_false" || question.type === "listening_choice") && (
           <Stack spacing={1.5} sx={{ mb: 2 }}>
@@ -119,7 +125,7 @@ export const QuestionForm = ({
               return (
                 <Box
                   key={opt.id}
-                  onClick={() => !locked && onSelectSingle(opt.id)}
+                  onClick={() => !interactionLocked && onSelectSingle(opt.id)}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -128,19 +134,19 @@ export const QuestionForm = ({
                     border: '1px solid',
                     borderColor: isSelected ? '#1A8C8E' : 'rgba(26,140,142,0.15)',
                     backgroundColor: isSelected ? 'rgba(26,140,142,0.05)' : '#ffffff',
-                    cursor: locked ? 'default' : 'pointer',
+                    cursor: interactionLocked ? 'default' : 'pointer',
                     transition: 'all 0.2s ease',
                     boxShadow: isSelected ? '0 4px 12px rgba(26,140,142,0.1)' : 'none',
                     '&:hover': {
-                      backgroundColor: locked ? (isSelected ? 'rgba(26,140,142,0.05)' : '#ffffff') : 'rgba(26,140,142,0.08)',
-                      borderColor: locked ? (isSelected ? '#1A8C8E' : 'rgba(26,140,142,0.15)') : '#1A8C8E'
+                      backgroundColor: interactionLocked ? (isSelected ? 'rgba(26,140,142,0.05)' : '#ffffff') : 'rgba(26,140,142,0.08)',
+                      borderColor: interactionLocked ? (isSelected ? '#1A8C8E' : 'rgba(26,140,142,0.15)') : '#1A8C8E'
                     }
                   }}
                 >
                   <Radio
                     checked={isSelected}
                     onChange={() => onSelectSingle(opt.id)}
-                    disabled={locked}
+                    disabled={interactionLocked}
                     sx={{ p: 0, mr: 1.5, color: '#1A8C8E', '&.Mui-checked': { color: '#1A8C8E' } }}
                   />
                   <Typography sx={{ fontWeight: isSelected ? 600 : 400, color: '#1E293B', wordBreak: 'break-word' }}>
@@ -159,7 +165,7 @@ export const QuestionForm = ({
               return (
                 <Box
                   key={opt.id}
-                  onClick={() => !locked && onToggleMultiple(opt.id, !isSelected)}
+                  onClick={() => !interactionLocked && onToggleMultiple(opt.id, !isSelected)}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -168,19 +174,19 @@ export const QuestionForm = ({
                     border: '1px solid',
                     borderColor: isSelected ? '#1A8C8E' : 'rgba(26,140,142,0.15)',
                     backgroundColor: isSelected ? 'rgba(26,140,142,0.05)' : '#ffffff',
-                    cursor: locked ? 'default' : 'pointer',
+                    cursor: interactionLocked ? 'default' : 'pointer',
                     transition: 'all 0.2s ease',
                     boxShadow: isSelected ? '0 4px 12px rgba(26,140,142,0.1)' : 'none',
                     '&:hover': {
-                      backgroundColor: locked ? (isSelected ? 'rgba(26,140,142,0.05)' : '#ffffff') : 'rgba(26,140,142,0.08)',
-                      borderColor: locked ? (isSelected ? '#1A8C8E' : 'rgba(26,140,142,0.15)') : '#1A8C8E'
+                      backgroundColor: interactionLocked ? (isSelected ? 'rgba(26,140,142,0.05)' : '#ffffff') : 'rgba(26,140,142,0.08)',
+                      borderColor: interactionLocked ? (isSelected ? '#1A8C8E' : 'rgba(26,140,142,0.15)') : '#1A8C8E'
                     }
                   }}
                 >
                   <Checkbox
                     checked={isSelected}
                     onChange={(e) => onToggleMultiple(opt.id, e.target.checked)}
-                    disabled={locked}
+                    disabled={interactionLocked}
                     sx={{ p: 0, mr: 1.5, color: '#1A8C8E', '&.Mui-checked': { color: '#1A8C8E' } }}
                   />
                   <Typography sx={{ fontWeight: isSelected ? 600 : 400, color: '#1E293B', wordBreak: 'break-word' }}>
@@ -193,7 +199,7 @@ export const QuestionForm = ({
         )}
 
         {question.type === "fill_blank" && (
-          <TextField label="Câu trả lời" value={fillText} onChange={(e) => onFillTextChange(e.target.value)} disabled={locked} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, backgroundColor: '#f8fafc' } }} />
+          <TextField label="Câu trả lời" value={fillText} onChange={(e) => onFillTextChange(e.target.value)} disabled={interactionLocked} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, backgroundColor: '#f8fafc' } }} />
         )}
 
         {question.type === "ordering" && (
@@ -204,17 +210,17 @@ export const QuestionForm = ({
                 <Button
                   key={opt.id}
                   variant="outlined"
-                  disabled={locked}
+                  disabled={interactionLocked}
                   onClick={() => onFillTextChange(`${orderingSequence}${opt.label.toUpperCase()}`)}
                   sx={{ borderRadius: 2, minWidth: 48, fontWeight: 700, borderColor: '#1A8C8E', color: '#1A8C8E', '&:hover': { backgroundColor: 'rgba(26,140,142,0.08)', borderColor: '#1A8C8E' } }}
                 >
                   {opt.label}
                 </Button>
               ))}
-              <Button variant="text" color="warning" disabled={locked || orderingSequence.length === 0} onClick={() => onFillTextChange(orderingSequence.slice(0, -1))} sx={{ borderRadius: 2, fontWeight: 600 }}>
+              <Button variant="text" color="warning" disabled={interactionLocked || orderingSequence.length === 0} onClick={() => onFillTextChange(orderingSequence.slice(0, -1))} sx={{ borderRadius: 2, fontWeight: 600 }}>
                 Xóa 1 ký tự
               </Button>
-              <Button variant="text" color="error" disabled={locked || orderingSequence.length === 0} onClick={() => onFillTextChange("")} sx={{ borderRadius: 2, fontWeight: 600 }}>
+              <Button variant="text" color="error" disabled={interactionLocked || orderingSequence.length === 0} onClick={() => onFillTextChange("")} sx={{ borderRadius: 2, fontWeight: 600 }}>
                 Làm lại
               </Button>
             </Box>
@@ -233,7 +239,7 @@ export const QuestionForm = ({
                     key={left}
                     variant={selectedLeftKey === left ? "contained" : "outlined"}
                     color={matchingPairs[left] ? "success" : "primary"}
-                    disabled={locked}
+                    disabled={interactionLocked}
                     onClick={() => setSelectedLeftKey(left)}
                     sx={{ borderRadius: 2, justifyContent: 'flex-start', textAlign: 'left', px: 2, py: 1.5, textTransform: 'none', fontWeight: selectedLeftKey === left ? 600 : 500, borderColor: matchingPairs[left] ? undefined : 'rgba(26,140,142,0.3)', color: matchingPairs[left] ? undefined : '#0F6B6D', '&:hover': { borderColor: '#1A8C8E', backgroundColor: matchingPairs[left] ? undefined : 'rgba(26,140,142,0.05)' } }}
                   >
@@ -247,7 +253,7 @@ export const QuestionForm = ({
                   <Button
                     key={right}
                     variant={selectedRightKey === right ? "contained" : "outlined"}
-                    disabled={locked}
+                    disabled={interactionLocked}
                     onClick={() => setSelectedRightKey(right)}
                     sx={{ borderRadius: 2, px: 2, py: 1.5, textTransform: 'none', fontWeight: selectedRightKey === right ? 600 : 500, borderColor: 'rgba(26,140,142,0.3)', color: '#0F6B6D', '&:hover': { borderColor: '#1A8C8E', backgroundColor: 'rgba(26,140,142,0.05)' }, ...(selectedRightKey === right ? { color: 'white', backgroundColor: '#1A8C8E', '&:hover': { backgroundColor: '#0F6B6D' } } : {}) }}
                   >
@@ -257,13 +263,13 @@ export const QuestionForm = ({
               </Stack>
             </Stack>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-              <Button variant="contained" disabled={locked || !selectedLeftKey || !selectedRightKey} onClick={submitPair} sx={{ borderRadius: 2, fontWeight: 600, px: 3, background: 'linear-gradient(135deg, #1A8C8E, #0F6B6D)', '&:hover': { background: 'linear-gradient(135deg, #0F6B6D, #0A5557)' } }}>
+              <Button variant="contained" disabled={interactionLocked || !selectedLeftKey || !selectedRightKey} onClick={submitPair} sx={{ borderRadius: 2, fontWeight: 600, px: 3, background: 'linear-gradient(135deg, #1A8C8E, #0F6B6D)', '&:hover': { background: 'linear-gradient(135deg, #0F6B6D, #0A5557)' } }}>
                 Ghép cặp đã chọn
               </Button>
               <Button
                 variant="outlined"
                 color="warning"
-                disabled={locked || !selectedLeftKey || !matchingPairs[selectedLeftKey]}
+                disabled={interactionLocked || !selectedLeftKey || !matchingPairs[selectedLeftKey]}
                 onClick={() => {
                   if (!selectedLeftKey) return;
                   const next = { ...matchingPairs };
@@ -275,7 +281,7 @@ export const QuestionForm = ({
                 Xóa ghép mục trái
               </Button>
             </Box>
-            <TextField label="Kết quả ghép" value={fillText} onChange={(e) => onFillTextChange(e.target.value)} disabled={locked} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, backgroundColor: '#f8fafc' } }} />
+            <TextField label="Kết quả ghép" value={fillText} onChange={(e) => onFillTextChange(e.target.value)} disabled={interactionLocked} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, backgroundColor: '#f8fafc' } }} />
           </Stack>
         )}
 
@@ -284,7 +290,7 @@ export const QuestionForm = ({
             label="Câu trả lời (ví dụ 1:C;2:D;3:A)"
             value={fillText}
             onChange={(e) => onFillTextChange(e.target.value)}
-            disabled={locked}
+            disabled={interactionLocked}
             fullWidth
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, backgroundColor: '#f8fafc' } }}
           />

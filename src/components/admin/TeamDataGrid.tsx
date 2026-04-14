@@ -24,6 +24,9 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 
 type Team = { id: number; name: string; description: string | null; contestantCount?: number };
 type Contestant = { id: number; teamId: number | null; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
@@ -121,7 +124,7 @@ const TeamDataGridContent = ({
                         }}
                         sx={{ color: "#1A8C8E" }}
                       >
-                        <Typography component="span" sx={{ fontSize: 18, fontWeight: 800 }}>+</Typography>
+                        <PersonAddRoundedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Sửa tên đội">
@@ -134,7 +137,7 @@ const TeamDataGridContent = ({
                         }}
                         sx={{ color: "#D4A741" }}
                       >
-                        <Typography component="span" sx={{ fontSize: 14, fontWeight: 800 }}>✏️</Typography>
+                        <EditRoundedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Xóa đội">
@@ -147,7 +150,7 @@ const TeamDataGridContent = ({
                         }}
                         sx={{ color: "#DC2626" }}
                       >
-                        <Typography component="span" sx={{ fontSize: 14, fontWeight: 800 }}>🗑️</Typography>
+                        <DeleteRoundedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </Stack>

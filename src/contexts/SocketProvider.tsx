@@ -24,6 +24,7 @@ type RealtimeStore = {
   countdownEndsAt: number | null;
   countdownSeconds: number;
   rulesContent: string | null;
+  backgroundUrl: string | null;
   reveal: AnswerRevealPayload | null;
   teamList: TeamListPayload | null;
   teamScore: TeamScorePayload | null;
@@ -46,6 +47,7 @@ const initialStore: RealtimeStore = {
   countdownEndsAt: null,
   countdownSeconds: 0,
   rulesContent: null,
+  backgroundUrl: null,
   reveal: null,
   teamList: null,
   teamScore: null,
@@ -90,20 +92,23 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         fullState,
         screen: fullState.screen,
         countdownEndsAt: fullState.countdownEndAt ? new Date(fullState.countdownEndAt).getTime() : null,
-        rulesContent: fullState.rulesContent ?? prev.rulesContent
+        rulesContent: fullState.rulesContent ?? prev.rulesContent,
+        backgroundUrl: fullState.backgroundUrl ?? prev.backgroundUrl
       }));
     });
 
-    socket.on("screen:change", ({ screen, data }: { screen: ContestScreen; data?: { rulesContent?: string | null } }) => {
+    socket.on("screen:change", ({ screen, data }: { screen: ContestScreen; data?: { rulesContent?: string | null; backgroundUrl?: string | null } }) => {
       setStore((prev) => ({
         ...prev,
         screen,
         rulesContent: data?.rulesContent ?? prev.rulesContent,
+        backgroundUrl: data?.backgroundUrl ?? prev.backgroundUrl,
         fullState: prev.fullState
           ? {
               ...prev.fullState,
               screen,
-              rulesContent: data?.rulesContent ?? prev.fullState.rulesContent
+              rulesContent: data?.rulesContent ?? prev.fullState.rulesContent,
+              backgroundUrl: data?.backgroundUrl ?? prev.fullState.backgroundUrl
             }
           : prev.fullState
       }));

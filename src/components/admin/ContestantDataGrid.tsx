@@ -19,6 +19,8 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 
 type Contestant = { id: number; teamId: number | null; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
 type Team = { id: number; name: string };
@@ -102,7 +104,7 @@ export const ContestantDataGrid = ({
                   <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
                     <Tooltip title="Sửa thí sinh">
                       <IconButton size="small" onClick={() => openEditFor(c)} sx={{ color: "#D4A741" }}>
-                        <Typography component="span" sx={{ fontSize: 14, fontWeight: 800 }}>✏️</Typography>
+                        <EditRoundedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Xóa thí sinh">
@@ -115,7 +117,7 @@ export const ContestantDataGrid = ({
                         }}
                         sx={{ color: "#DC2626" }}
                       >
-                        <Typography component="span" sx={{ fontSize: 14, fontWeight: 800 }}>🗑️</Typography>
+                        <DeleteRoundedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </Stack>

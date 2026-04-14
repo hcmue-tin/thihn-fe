@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Snackbar, Stack, TextField, Typography } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { api } from "../../api";
+import { api, resolveMediaUrl } from "../../api";
 import { useRealtime } from "../../hooks/useRealtime";
 import { QuestionForm } from "../../components/contestant/QuestionForm";
 import { ResultView } from "../../components/contestant/ResultView";
 import { lightTheme } from "../../theme";
-import bgImage from "../../assets/Contexts.png";
 
 type ContestantIdentity = {
   id: number;
@@ -24,6 +23,8 @@ export const ContestantPage = () => {
     countdownEndsAt,
     countdownSeconds,
     latestAnswerResult,
+    rulesContent,
+    backgroundUrl,
     connectSocket,
     emitWithAck
   } = useRealtime();
@@ -118,7 +119,7 @@ export const ContestantPage = () => {
   if (!token || !identity) {
     return (
       <ThemeProvider theme={lightTheme}>
-        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2, backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2, backgroundColor: "#EAF3F8" }}>
           <Card sx={{ width: "100%", maxWidth: 400, backgroundColor: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", borderRadius: 5 }}>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h5" sx={{ mb: 3, fontWeight: 900, textAlign: "center", color: "#0F6B6D" }}>
@@ -146,14 +147,28 @@ export const ContestantPage = () => {
   }
 
   const showWaiting = screen === "idle" || screen === "waiting" || screen === "rules" || screen === "team_list";
+  const showRules = screen === "rules";
   const showQuestion = (screen === "question" || screen === "countdown") && question;
   const showResult = screen === "reveal" && latestAnswerResult;
   const waitingForCountdown = screen === "question";
   const canSubmit = screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
-
+  const contestantBackgroundImage = backgroundUrl ? resolveMediaUrl(backgroundUrl) : null;
   return (
     <ThemeProvider theme={lightTheme}>
-      <Box sx={{ minHeight: "100vh", p: 2, pt: { xs: 16, sm: 20, md: 24 }, backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          p: 2,
+          pt: { xs: 16, sm: 20, md: 24 },
+          backgroundColor: "#EAF3F8",
+          backgroundImage: contestantBackgroundImage
+            ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url(${contestantBackgroundImage})`
+            : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed"
+        }}
+      >
         <Box sx={{ maxWidth: 720, mx: "auto", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 5, p: 3, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
           <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", mb: 0.25 }}>
             {identity.name} ({identity.code})
@@ -165,11 +180,23 @@ export const ContestantPage = () => {
           )}
           <Box sx={{ display: "flex", justifyContent: "center", mb: 2.5 }}>
             <Box sx={{ px: 3, py: 0.75, borderRadius: 50, background: "linear-gradient(135deg, #D4A741, #F5D98A)", color: "#FFFFFF", fontWeight: 800, fontSize: "1rem", boxShadow: "0 4px 16px rgba(212,167,65,0.3)" }}>
-              Tổng điểm: {latestAnswerResult?.totalScore ?? identity.totalScore}
+              Tổng điểm: {latestAnswerResult?.totalScore ?? 0}
             </Box>
           </Box>
 
-        {showWaiting && <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>Đang chờ quản trị viên bắt đầu...</Alert>}
+        {showWaiting && <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>{showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}</Alert>}
+        {showRules && (
+          <Card sx={{ mb: 2, borderRadius: 3, border: "1px solid rgba(26,140,142,0.15)" }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: "#0F6B6D", mb: 1 }}>
+                Thể lệ cuộc thi
+              </Typography>
+              <Typography sx={{ whiteSpace: "pre-wrap", color: "#1A3A4A" }}>
+                {rulesContent?.trim() || "Chưa cấu hình thể lệ cuộc thi"}
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
 
         {showQuestion && question && (
           <QuestionForm
@@ -197,8 +224,6 @@ export const ContestantPage = () => {
         {showResult && latestAnswerResult && (
           <ResultView
             isCorrect={latestAnswerResult.isCorrect}
-            scoreEarned={latestAnswerResult.scoreEarned}
-            totalScore={latestAnswerResult.totalScore}
           />
         )}
 

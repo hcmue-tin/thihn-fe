@@ -2,11 +2,9 @@ import { Box, Typography } from "@mui/material";
 
 type ResultViewProps = {
   isCorrect: boolean;
-  scoreEarned: number;
-  totalScore: number;
 };
 
-export const ResultView = ({ isCorrect, scoreEarned, totalScore }: ResultViewProps) => (
+export const ResultView = ({ isCorrect }: ResultViewProps) => (
   <Box
     sx={{
       mt: 2,
@@ -22,13 +20,5 @@ export const ResultView = ({ isCorrect, scoreEarned, totalScore }: ResultViewPro
     <Typography variant="h6" sx={{ fontWeight: 800, color: isCorrect ? "#15803D" : "#DC2626", mb: 0.5 }}>
       {isCorrect ? "✅ Bạn trả lời đúng!" : "❌ Bạn trả lời sai."}
     </Typography>
-    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
-      <Box sx={{ px: 2, py: 0.5, borderRadius: 50, background: "linear-gradient(135deg, #D4A741, #F5D98A)", color: "#FFFFFF", fontWeight: 800 }}>
-        +{scoreEarned} điểm
-      </Box>
-      <Typography sx={{ fontWeight: 700, color: "#1A3A4A", alignSelf: "center" }}>
-        Tổng điểm: {totalScore}
-      </Typography>
-    </Box>
   </Box>
 );

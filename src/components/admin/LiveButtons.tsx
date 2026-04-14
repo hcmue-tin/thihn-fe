@@ -16,6 +16,7 @@ type LiveButtonsProps = {
   onShowQuestion: () => void;
   onStartCountdown: () => void;
   onStopShowAnswer: () => void;
+  onRetakeQuestion: () => void;
   onShowTeamScore: () => void;
   onShowLeaderboard: () => void;
 };
@@ -30,6 +31,7 @@ export const LiveButtons = ({
   onShowQuestion,
   onStartCountdown,
   onStopShowAnswer,
+  onRetakeQuestion,
   onShowTeamScore,
   onShowLeaderboard
 }: LiveButtonsProps) => (
@@ -54,6 +56,9 @@ export const LiveButtons = ({
     </Button>
     <Button size="large" variant="contained" color="warning" disabled={!canStopShowAnswer(screen) || pendingAction} onClick={onStopShowAnswer}>
       Dừng / Hiện đáp án
+    </Button>
+    <Button size="large" variant="outlined" color="secondary" disabled={!selectedQuestionId || pendingAction} onClick={onRetakeQuestion}>
+      Cho thi lại câu này
     </Button>
     <Divider />
     <Button size="large" variant="outlined" disabled={!selectedExamSetId || pendingAction} onClick={onShowTeamScore}>

@@ -23,15 +23,14 @@ type Props = {
   onCreated: () => Promise<void>;
 };
 
-type QuestionType = "true_false" | "single_choice" | "multiple_choice" | "fill_blank" | "ordering" | "matching" | "listening_choice";
+type QuestionType = "true_false" | "single_choice" | "multiple_choice" | "fill_blank" | "ordering" | "matching";
 
 const typeOptions: Array<{ value: QuestionType; label: string }> = [
   { value: "true_false", label: "Dạng 1 - Phán đoán đúng/sai" },
   { value: "single_choice", label: "Dạng 2 - Chọn đáp án đúng" },
   { value: "fill_blank", label: "Dạng 3 - Điền vào chỗ trống" },
   { value: "ordering", label: "Dạng 4 - Sắp xếp thành câu/đoạn" },
-  { value: "matching", label: "Dạng 5 - Nối nội dung tương ứng" },
-  { value: "listening_choice", label: "Dạng 6 - Nghe và chọn đáp án đúng" }
+  { value: "matching", label: "Dạng 5 - Nối nội dung tương ứng" }
 ];
 
 export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaultOrderNum, onCreated }: Props) => {
@@ -52,7 +51,7 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
     { label: "D", content: "", isCorrect: false, orderNum: 4 }
   ]);
 
-  const showOptions = useMemo(() => ["true_false", "single_choice", "multiple_choice", "fill_blank", "listening_choice"].includes(type), [type]);
+  const showOptions = useMemo(() => ["true_false", "single_choice", "multiple_choice", "fill_blank"].includes(type), [type]);
   const showAccepted = useMemo(() => ["fill_blank", "ordering", "matching"].includes(type), [type]);
 
   useEffect(() => {
@@ -92,9 +91,9 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
       options: showOptions
         ? options
             .filter((o) => o.content.trim().length > 0 || type === "true_false")
-            .map((o, idx) => ({
+            .map((o) => ({
               label: o.label,
-              content: type === "true_false" ? (idx === 0 ? "正确" : idx === 1 ? "错误" : o.content) : o.content,
+              content: o.content,
               isCorrect: o.isCorrect,
               orderNum: o.orderNum
             }))
@@ -154,7 +153,6 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
         </TextField>
         <TextField size="small" label="Nội dung câu hỏi" value={content} onChange={(e) => setContent(e.target.value)} multiline minRows={2} />
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-          <TextField size="small" label="Số thứ tự câu" type="number" value={orderNum} onChange={(e) => setOrderNum(Number(e.target.value))} />
           <TextField size="small" label="Điểm" type="number" value={score} onChange={(e) => setScore(Number(e.target.value))} />
           <TextField
             size="small"
@@ -227,7 +225,7 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
                       onChange={(e) => {
                         const next = [...options];
                         next[idx].isCorrect = e.target.checked;
-                        if (["true_false", "single_choice", "listening_choice", "fill_blank"].includes(type) && e.target.checked) {
+                        if (["true_false", "single_choice", "fill_blank"].includes(type) && e.target.checked) {
                           next.forEach((it, i) => {
                             if (i !== idx) it.isCorrect = false;
                           });
