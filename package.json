@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port 5173",
+    "start:pm2": "pm2 start ecosystem.config.cjs --env production",
+    "restart:pm2": "npm run build && pm2 reload ecosystem.config.cjs --env production"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -20,7 +23,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.0",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

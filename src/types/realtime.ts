@@ -1,3 +1,5 @@
+import type { QuestionType } from "./question";
+
 export type ContestScreen =
   | "idle"
   | "waiting"
@@ -18,6 +20,9 @@ export type ContestState = {
   countdownEndAt: string | null;
   rulesContent?: string | null;
   backgroundUrl?: string | null;
+  ledBackgroundUrl?: string | null;
+  contestantBackgroundUrl?: string | null;
+  activeTeamId?: number | null;
   version: number;
   updatedAt: string;
 };
@@ -32,7 +37,7 @@ export type QuestionOption = {
 
 export type QuestionPayload = {
   id: number;
-  type: "true_false" | "single_choice" | "multiple_choice" | "fill_blank" | "ordering" | "matching" | "listening_choice";
+  type: QuestionType;
   content: string;
   imageUrl?: string | null;
   audioUrl?: string | null;
@@ -80,6 +85,7 @@ export type AnswerResultsPayload = {
     hasSubmitted: boolean;
     isCorrect: boolean | null;
     scoreEarned: number;
+    answerSummary?: string | null;
   }>;
 };
 

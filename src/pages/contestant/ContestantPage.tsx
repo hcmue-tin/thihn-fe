@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Snackbar, Stack, TextField, Typography } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { api, resolveMediaUrl } from "../../api";
+import { clearAllSessions } from "../../auth/session";
 import { useRealtime } from "../../hooks/useRealtime";
 import { QuestionForm } from "../../components/contestant/QuestionForm";
 import { ResultView } from "../../components/contestant/ResultView";
@@ -9,6 +10,7 @@ import { lightTheme } from "../../theme";
 
 type ContestantIdentity = {
   id: number;
+  teamId?: number | null;
   code: string;
   name: string;
   unit?: string | null;
@@ -25,7 +27,11 @@ export const ContestantPage = () => {
     latestAnswerResult,
     rulesContent,
     backgroundUrl,
+    contestantBackgroundUrl,
+    questionShowSeq,
+    fullState,
     connectSocket,
+    disconnectSocket,
     emitWithAck
   } = useRealtime();
   const [code, setCode] = useState("");
@@ -58,7 +64,7 @@ export const ContestantPage = () => {
     setFillText("");
     setIsSubmitted(false);
     setLocked(false);
-  }, [question?.id]);
+  }, [question?.id, questionShowSeq]);
 
   useEffect(() => {
     if (!countdownEndsAt) {
@@ -92,7 +98,6 @@ export const ContestantPage = () => {
       setToken(data.token);
     } catch {
       setError("Đăng nhập thất bại. Vui lòng kiểm tra mã và mật khẩu.");
-      setToastOpen(true);
     } finally {
       setIsLoading(false);
     }
@@ -101,10 +106,12 @@ export const ContestantPage = () => {
   const submitAnswer = async (): Promise<void> => {
     if (!question || locked || isSubmitted) return;
     setIsLoading(true);
-    const payload =
-      question.type === "fill_blank"
-        ? { questionId: question.id, fillText }
-        : { questionId: question.id, selectedOptionIds };
+    const normalizedFillText = fillText.trim();
+    const payload = {
+      questionId: question.id,
+      selectedOptionIds: selectedOptionIds.length > 0 ? selectedOptionIds : undefined,
+      fillText: normalizedFillText.length > 0 ? normalizedFillText : undefined
+    };
     const ack = await emitWithAck("contestant:submit-answer", payload);
     setIsLoading(false);
     if (!ack.success) {
@@ -119,9 +126,9 @@ export const ContestantPage = () => {
   if (!token || !identity) {
     return (
       <ThemeProvider theme={lightTheme}>
-        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2, backgroundColor: "#EAF3F8" }}>
-          <Card sx={{ width: "100%", maxWidth: 400, backgroundColor: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", borderRadius: 5 }}>
-            <CardContent sx={{ p: 4 }}>
+        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: { xs: 1.5, sm: 2 }, backgroundColor: "#EAF3F8" }}>
+          <Card sx={{ width: "100%", maxWidth: 400, backgroundColor: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", borderRadius: { xs: 3, sm: 5 } }}>
+            <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
               <Typography variant="h5" sx={{ mb: 3, fontWeight: 900, textAlign: "center", color: "#0F6B6D" }}>
                 Đăng nhập thí sinh
               </Typography>
@@ -135,7 +142,7 @@ export const ContestantPage = () => {
                   fullWidth
                 />
                 {error && <Alert severity="error">{error}</Alert>}
-                <Button variant="contained" size="large" onClick={handleLogin} disabled={isLoading || !code || !password} sx={{ mt: 2, fontWeight: 'bold', height: 48, borderRadius: 3, background: 'linear-gradient(135deg, #1A8C8E, #0F6B6D)', '&:hover': { background: 'linear-gradient(135deg, #0F6B6D, #0A5557)' } }}>
+                <Button variant="contained" size="large" onClick={handleLogin} disabled={isLoading || !code || !password} sx={{ mt: 2, fontWeight: "bold", minHeight: { xs: 44, sm: 48 }, borderRadius: 3, background: "linear-gradient(135deg, #1A8C8E, #0F6B6D)", "&:hover": { background: "linear-gradient(135deg, #0F6B6D, #0A5557)" } }}>
                   Đăng nhập
                 </Button>
               </Stack>
@@ -148,18 +155,31 @@ export const ContestantPage = () => {
 
   const showWaiting = screen === "idle" || screen === "waiting" || screen === "rules" || screen === "team_list";
   const showRules = screen === "rules";
-  const showQuestion = (screen === "question" || screen === "countdown") && question;
-  const showResult = screen === "reveal" && latestAnswerResult;
+  const isBlockedByTeam =
+    fullState?.activeTeamId != null &&
+    identity.teamId !== fullState.activeTeamId;
+  const showQuestion = !isBlockedByTeam && (screen === "question" || screen === "countdown") && question;
+  const showResult = !isBlockedByTeam && screen === "reveal" && latestAnswerResult;
   const waitingForCountdown = screen === "question";
-  const canSubmit = screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
-  const contestantBackgroundImage = backgroundUrl ? resolveMediaUrl(backgroundUrl) : null;
+  const canSubmit = !isBlockedByTeam && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
+  const contestantBg = contestantBackgroundUrl ?? backgroundUrl;
+  const contestantBackgroundImage = contestantBg ? resolveMediaUrl(contestantBg) : null;
+
+  const handleLogout = (): void => {
+    disconnectSocket();
+    clearAllSessions();
+    setToken(null);
+    setIdentity(null);
+    setCode("");
+    setPassword("");
+  };
   return (
     <ThemeProvider theme={lightTheme}>
       <Box
         sx={{
           minHeight: "100vh",
-          p: 2,
-          pt: { xs: 16, sm: 20, md: 24 },
+          p: { xs: 1, sm: 2 },
+          pt: { xs: 12, sm: 16, md: 20 },
           backgroundColor: "#EAF3F8",
           backgroundImage: contestantBackgroundImage
             ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url(${contestantBackgroundImage})`
@@ -169,22 +189,55 @@ export const ContestantPage = () => {
           backgroundAttachment: "fixed"
         }}
       >
-        <Box sx={{ maxWidth: 720, mx: "auto", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 5, p: 3, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", mb: 0.25 }}>
-            {identity.name} ({identity.code})
-          </Typography>
+        {!isBlockedByTeam && (screen === "question" || screen === "countdown") && (
+          <Box
+            sx={{
+              position: "fixed",
+              top: { xs: 8, sm: 10, md: 12 },
+              right: { xs: 8, sm: 10, md: 12 },
+              zIndex: 30,
+              textAlign: "right",
+              px: { xs: 1.25, sm: 1.5, md: 1.75 },
+              py: { xs: 0.75, sm: 1, md: 1.25 },
+              borderRadius: 3,
+              background: "rgba(255,255,255,0.75)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(26,140,142,0.22)",
+              boxShadow: "0 10px 24px rgba(23,50,77,0.14)",
+              pointerEvents: "none"
+            }}
+          >
+            <Typography sx={{ fontWeight: 900, color: "#17324d", fontSize: { xs: "2.3rem", sm: "2.9rem", md: "3.6rem" }, lineHeight: 1 }}>
+              {screen === "countdown" ? Math.ceil(remainingMs / 1000) : "--"}
+            </Typography>
+          </Box>
+        )}
+        <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1160, lg: 1320 }, mx: "auto", position: "relative", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 2, sm: 3, md: 3.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
+          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", justifyContent: "space-between", gap: 1, mb: 0.5 }}>
+            <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", flex: 1, fontSize: { xs: "1rem", sm: "1.25rem" } }}>
+              {identity.name} ({identity.code})
+            </Typography>
+            <Button size="small" variant="outlined" color="inherit" onClick={handleLogout} sx={{ fontWeight: 700, flexShrink: 0 }}>
+              Đăng xuất
+            </Button>
+          </Box>
           {identity.unit && (
             <Typography variant="body2" sx={{ textAlign: "center", color: "#4A7A8A", mb: 0.5 }}>
               {identity.unit}
             </Typography>
           )}
           <Box sx={{ display: "flex", justifyContent: "center", mb: 2.5 }}>
-            <Box sx={{ px: 3, py: 0.75, borderRadius: 50, background: "linear-gradient(135deg, #D4A741, #F5D98A)", color: "#FFFFFF", fontWeight: 800, fontSize: "1rem", boxShadow: "0 4px 16px rgba(212,167,65,0.3)" }}>
+            <Box sx={{ px: { xs: 2, sm: 3 }, py: 0.75, borderRadius: 50, background: "linear-gradient(135deg, #D4A741, #F5D98A)", color: "#FFFFFF", fontWeight: 800, fontSize: { xs: "0.9rem", sm: "1rem" }, boxShadow: "0 4px 16px rgba(212,167,65,0.3)" }}>
               Tổng điểm: {latestAnswerResult?.totalScore ?? 0}
             </Box>
           </Box>
 
-        {showWaiting && <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>{showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}</Alert>}
+        {isBlockedByTeam && (
+          <Alert severity="warning" sx={{ mb: 2, borderRadius: 3 }}>
+            Bạn không thuộc đội đang thi. Vui lòng chờ đến lượt đội của bạn.
+          </Alert>
+        )}
+        {!isBlockedByTeam && showWaiting && <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>{showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}</Alert>}
         {showRules && (
           <Card sx={{ mb: 2, borderRadius: 3, border: "1px solid rgba(26,140,142,0.15)" }}>
             <CardContent>
@@ -205,7 +258,6 @@ export const ContestantPage = () => {
             selectedOptionIds={selectedOptionIds}
             fillText={fillText}
             progress={progress}
-            remainingSeconds={Math.ceil(remainingMs / 1000)}
             locked={locked}
             isLoading={isLoading}
             isSubmitted={isSubmitted}

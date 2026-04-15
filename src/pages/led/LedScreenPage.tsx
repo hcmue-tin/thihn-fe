@@ -1,30 +1,18 @@
-import { Box, CircularProgress, Fade, Paper, Typography } from "@mui/material";
+import { Box, Fade, Paper, Typography } from "@mui/material";
 import { keyframes, styled } from "@mui/material/styles";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { resolveMediaUrl } from "../../api";
+import { QuestionContentWithBlank } from "../../components/contestant/QuestionContentWithBlank";
+import { parseMatchingContent } from "../../components/admin/matchingEditorUtils";
+import { useCountdownClock } from "../../hooks/realtime/useCountdownClock";
+import { useLedAudioSync } from "../../hooks/realtime/useLedAudioSync";
 import { useRealtime } from "../../hooks/useRealtime";
-import type { ContestScreen } from "../../types/realtime";
-
-const pulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(212, 167, 65, 0.4); }
-  70% { box-shadow: 0 0 0 30px rgba(212, 167, 65, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(212, 167, 65, 0); }
-`;
 
 const flash = keyframes`
   0%, 100% { transform: scale(1); filter: brightness(1); }
   50% { transform: scale(1.02); filter: brightness(1.08); }
 `;
 
-const slideIn = keyframes`
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
-
-const correctBlink = keyframes`
-  0%, 100% { background: rgba(21,128,61,0.05); border-color: rgba(21,128,61,0.3); }
-  50% { background: rgba(21,128,61,0.25); border-color: rgba(21,128,61,0.8); box-shadow: 0 0 16px rgba(21,128,61,0.4); transform: scale(1.02); }
-`;
 
 const ScreenRoot = styled(Box)({
   minHeight: "100svh",
@@ -70,7 +58,9 @@ export const LedScreenPage = () => {
     countdownSeconds,
     rulesContent,
     backgroundUrl,
+    ledBackgroundUrl,
     reveal,
+    ledSolutionVisible,
     teamList,
     teamScore,
     leaderboard,
@@ -78,10 +68,6 @@ export const LedScreenPage = () => {
     connectSocket
   } =
     useRealtime();
-  const [remainingMs, setRemainingMs] = useState(0);
-  const [audioTrigger, setAudioTrigger] = useState(0);
-  const ledAudioRef = useRef<HTMLAudioElement | null>(null);
-
   useEffect(() => {
     const token = localStorage.getItem("adminToken") || localStorage.getItem("accessToken");
     if (token) {
@@ -89,57 +75,75 @@ export const LedScreenPage = () => {
     }
   }, [connectSocket]);
 
-  useEffect(() => {
-    if (!countdownEndsAt) {
-      setRemainingMs(0);
-      return;
-    }
-
-    let raf = 0;
-    const render = () => {
-      setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
-      raf = requestAnimationFrame(render);
-    };
-
-    raf = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(raf);
-  }, [countdownEndsAt]);
-
-  useEffect(() => {
-    if (!socket) return;
-    const handlePlayAudio = (): void => setAudioTrigger((prev) => prev + 1);
-    socket.on("led:play-audio", handlePlayAudio);
-    return () => {
-      socket.off("led:play-audio", handlePlayAudio);
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    if (!question?.audioUrl || !ledAudioRef.current || audioTrigger === 0) return;
-    ledAudioRef.current.currentTime = 0;
-    void ledAudioRef.current.play().catch(() => undefined);
-  }, [audioTrigger, question?.audioUrl]);
-
-  const remainingSeconds = Math.ceil(remainingMs / 1000);
-
-  const progress = useMemo(() => {
-    if (!countdownSeconds) return 0;
-    const pct = (remainingMs / (countdownSeconds * 1000)) * 100;
-    return Math.min(100, Math.max(0, pct));
-  }, [countdownSeconds, remainingMs]);
+  const { remainingSeconds } = useCountdownClock(countdownEndsAt, countdownSeconds);
+  const { ledAudioRef } = useLedAudioSync(socket, question?.audioUrl);
 
   const revealDetailText = useMemo(() => {
     if (!question || !reveal) return [];
     if (reveal.fillBlankAnswers.length > 0) {
-      return reveal.fillBlankAnswers.length > 0
-        ? ["Đáp án chấp nhận:", ...reveal.fillBlankAnswers.map((answer) => `- ${answer}`)]
-        : ["Đáp án chấp nhận: (không có dữ liệu)"];
+      if (question.type === "matching" || question.type === "ordering") return [];
+      return [`Đáp án chấp nhận: ${reveal.fillBlankAnswers.join(" | ")}`];
     }
 
     return [];
-  }, [options, question, reveal]);
+  }, [question, reveal]);
+  const acceptedAnswerCompact = useMemo(() => {
+    if (!question || !reveal || reveal.fillBlankAnswers.length === 0) return "";
+    const raw = reveal.fillBlankAnswers[0] ?? "";
+    if (question.type === "matching") {
+      return raw
+        .split(";")
+        .map((pair) => pair.trim().replace(/\./g, ":"))
+        .filter(Boolean)
+        .join(";");
+    }
+    if (question.type === "ordering") {
+      return reveal.fillBlankAnswers
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .join(" | ");
+    }
+    return "";
+  }, [question, reveal]);
+  const questionTitle = useMemo(() => {
+    if (!question) return "";
+    if (question.type !== "matching") return question.content;
+    const parsed = parseMatchingContent(question.content);
+    return parsed.stem || question.content;
+  }, [question]);
+  const matchingColumns = useMemo(() => {
+    if (!question || question.type !== "matching") {
+      return { left: [] as string[], right: [] as string[] };
+    }
+    const parsed = parseMatchingContent(question.content);
+    return { left: parsed.left, right: parsed.right };
+  }, [question]);
+  const matchingConnections = useMemo(() => {
+    if (question?.type !== "matching" || !reveal || reveal.fillBlankAnswers.length === 0) {
+      return [];
+    }
+    const palette = ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
+    const raw = reveal.fillBlankAnswers[0] ?? "";
+    return raw
+      .split(";")
+      .map((pair) => pair.trim().replace(/\./g, ":"))
+      .filter(Boolean)
+      .map((pair) => {
+        const [leftRaw, rightRaw] = pair.split(":").map((x) => x.trim());
+        const leftIdx = Number(leftRaw) - 1;
+        const rightIdx = rightRaw.toUpperCase().charCodeAt(0) - 65;
+        return {
+          leftKey: leftRaw,
+          rightKey: rightRaw.toUpperCase(),
+          leftText: matchingColumns.left[leftIdx] ?? "",
+          rightText: matchingColumns.right[rightIdx] ?? ""
+        };
+      })
+      .map((item, idx) => ({ ...item, color: palette[idx % palette.length] }));
+  }, [matchingColumns.left, matchingColumns.right, question?.type, reveal]);
 
-  const ledBackgroundImage = backgroundUrl ? resolveMediaUrl(backgroundUrl) : "";
+  const ledBg = ledBackgroundUrl ?? backgroundUrl;
+  const ledBackgroundImage = ledBg ? resolveMediaUrl(ledBg) : "";
 
   return (
     <ScreenRoot
@@ -165,6 +169,9 @@ export const LedScreenPage = () => {
           zIndex: 1,
           minHeight: "100svh",
           px: { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
+          pr: (screen === "countdown" || screen === "question")
+            ? { xs: 1.5, sm: 2.5, md: 22, lg: 26 }
+            : { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
           pt: { xs: 9, sm: 10, md: 13, lg: 15 },
           pb: { xs: 12, sm: 14, md: 18, lg: 22 },
           display: "flex",
@@ -172,33 +179,36 @@ export const LedScreenPage = () => {
           gap: { xs: 1.5, sm: 2, md: 2.5 }
         }}
       >
-        <Box sx={{ minHeight: 32 }} />
-
-        <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1240 }, mx: "auto", position: "relative" }}>
-          {screen === "countdown" && (
-            <Box
+        {(screen === "countdown" || screen === "question") && (
+          <Box
+            sx={{
+              position: "fixed",
+              top: { xs: 12, sm: 16, md: 22, lg: 28 },
+              right: { xs: 12, sm: 18, md: 24, lg: 28 },
+              zIndex: 20,
+              textAlign: "right",
+              px: { xs: 1.25, md: 1.75 },
+              py: { xs: 1, md: 1.25 },
+              borderRadius: 3,
+              background: "rgba(255,255,255,0.72)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(26,140,142,0.24)",
+              boxShadow: "0 10px 28px rgba(23,50,77,0.14)",
+              pointerEvents: "none"
+            }}
+          >
+            <Typography
               sx={{
-                position: "absolute",
-                right: { xs: "-5%", sm: "0%", md: "5%", lg: "10%" },
-                top: "50%",
-                transform: "translate(50%, -50%)",
-                zIndex: 10
+                fontWeight: 900,
+                color: "#17324d",
+                fontSize: { xs: "2.6rem", sm: "3.2rem", md: "4rem", lg: "4.8rem" },
+                lineHeight: 1
               }}
             >
-              <Typography
-                sx={{
-                  fontWeight: 900,
-                  color: "#17324d",
-                  fontSize: { xs: "3.5rem", sm: "4.5rem", md: "5.5rem", lg: "7rem" },
-                  lineHeight: 1,
-                  textShadow: "0 8px 24px rgba(23,50,77,0.15)"
-                }}
-              >
-                {remainingSeconds}
-              </Typography>
-            </Box>
-          )}
-        </Box>
+              {screen === "countdown" ? remainingSeconds : "—"}
+            </Typography>
+          </Box>
+        )}
 
         {(screen === "question" || screen === "countdown" || screen === "reveal") && (
           <Box sx={{ width: "100%", maxWidth: { xs: "100%", lg: 1536 }, mx: "auto", display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: { xs: 2, lg: 3 }, alignItems: "flex-start" }}>
@@ -241,18 +251,30 @@ export const LedScreenPage = () => {
                           p: 1.5,
                           borderRadius: 2.5,
                           background: "rgba(255,255,255,0.56)",
-                          border: "1px solid rgba(111, 165, 207, 0.18)",
-                          ...(row.isCorrect === true && {
-                            animation: `${correctBlink} 1.5s infinite ease-in-out`
-                          })
+                          border: "1px solid rgba(111, 165, 207, 0.18)"
                         }}
                       >
-                        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center" }}>
-                          <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" }}>
-                            {row.contestantName}
-                          </Typography>
-                          <Typography component="div" sx={{ fontWeight: 700, color: row.hasSubmitted ? (row.isCorrect ? "#15803D" : "#DC2626") : "#64748B", fontSize: { xs: "0.8rem", md: "0.9rem" } }}>
-                            {!row.hasSubmitted ? "Chưa làm" : row.isCorrect ? "Đúng" : "Sai"}
+                        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: "flex-start" }}>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", textAlign: "left" }}>
+                              {row.contestantName}
+                            </Typography>
+                            {row.answerSummary && (
+                              <Typography component="div" sx={{ fontWeight: 600, color: "#334155", fontSize: "0.85rem", mt: 0.5, wordBreak: "break-word" }}>
+                                Chọn: {row.answerSummary}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Typography
+                            component="div"
+                            sx={{
+                              fontWeight: 700,
+                              color: row.hasSubmitted ? "#0F6B6D" : "#64748B",
+                              fontSize: { xs: "0.8rem", md: "0.9rem" },
+                              flexShrink: 0
+                            }}
+                          >
+                            {!row.hasSubmitted ? "Chưa làm" : "Đã nộp"}
                           </Typography>
                         </Box>
                       </Box>
@@ -266,20 +288,164 @@ export const LedScreenPage = () => {
             <Box sx={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", gap: { xs: 1.5, md: 2 } }}>
               {question && (
                 <Fade in timeout={450}>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1.25, md: 2 } }}>
-                    <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
-                      <Typography
-                        component="div"
-                        sx={{
-                          fontWeight: 800,
-                          color: "#1A3A4A",
-                          textAlign: "center",
-                          fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.4rem" },
-                          lineHeight: 1.2
-                        }}
-                      >
-                        {question.content}
-                      </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: { xs: "column", lg: "row" },
+                      gap: { xs: 1.25, md: 2 },
+                      alignItems: "stretch"
+                    }}
+                  >
+                    <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 }, flex: 1, minWidth: 0 }}>
+                      {question.type === "fill_blank" ? (
+                        <QuestionContentWithBlank
+                          content={question.content}
+                          sx={{
+                            fontWeight: 800,
+                            color: "#1A3A4A",
+                            textAlign: "center",
+                            fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.4rem" },
+                            lineHeight: 1.2,
+                            mb: 0
+                          }}
+                        />
+                      ) : (
+                        <Typography
+                          component="div"
+                          sx={{
+                            fontWeight: 800,
+                            color: "#1A3A4A",
+                            textAlign: "center",
+                            fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.4rem" },
+                            lineHeight: 1.2
+                          }}
+                        >
+                          {questionTitle}
+                        </Typography>
+                      )}
+                      {question.type === "matching" && (matchingColumns.left.length > 0 || matchingColumns.right.length > 0) && (
+                        <Box
+                          sx={{
+                            mt: 2,
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                            gap: { xs: 1.25, md: 2 }
+                          }}
+                        >
+                          <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
+                            <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
+                              Cột trái
+                            </Typography>
+                            {matchingColumns.left.map((item, idx) => (
+                              <Box
+                                key={`left-${idx}`}
+                                sx={{
+                                  mb: 0.7,
+                                  px: 1.2,
+                                  py: 0.8,
+                                  borderRadius: 2,
+                                  border: "1px solid rgba(26,140,142,0.22)",
+                                  background: "rgba(255,255,255,0.7)"
+                                }}
+                              >
+                                <Typography
+                                  component="div"
+                                  sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
+                                >
+                                  ({idx + 1}) {item}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </GlassCard>
+                          <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
+                            <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
+                              Cột phải
+                            </Typography>
+                            {matchingColumns.right.map((item, idx) => (
+                              <Box
+                                key={`right-${idx}`}
+                                sx={{
+                                  mb: 0.7,
+                                  px: 1.2,
+                                  py: 0.8,
+                                  borderRadius: 2,
+                                  border: "1px solid rgba(26,140,142,0.22)",
+                                  background: "rgba(255,255,255,0.7)"
+                                }}
+                              >
+                                <Typography
+                                  component="div"
+                                  sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
+                                >
+                                  {String.fromCharCode(65 + idx)}. {item}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </GlassCard>
+                        </Box>
+                      )}
+                      {question.type === "matching" && screen === "reveal" && ledSolutionVisible && matchingConnections.length > 0 && (
+                        <GlassCard
+                          sx={{
+                            mt: 2,
+                            p: { xs: 1.25, md: 1.8 },
+                            borderRadius: 3,
+                            border: "2px solid rgba(15,107,109,0.25)",
+                            background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.85) 100%)"
+                          }}
+                        >
+                          <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 1.2 }}>
+                            Dây nối đáp án đúng
+                          </Typography>
+                          {acceptedAnswerCompact && (
+                            <Typography
+                              component="div"
+                              sx={{ fontWeight: 800, color: "#17324d", mb: 1.2, fontSize: { xs: "0.95rem", md: "1.05rem" } }}
+                            >
+                              Đáp án: {acceptedAnswerCompact}
+                            </Typography>
+                          )}
+                          <Box sx={{ display: "grid", gap: 1 }}>
+                            {matchingConnections.map((connection) => (
+                              <Box
+                                key={`${connection.leftKey}-${connection.rightKey}`}
+                                sx={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 1 }}
+                              >
+                                <Box
+                                  sx={{
+                                    px: 1,
+                                    py: 0.75,
+                                    borderRadius: 2,
+                                    border: `2px solid ${connection.color}`,
+                                    backgroundColor: "rgba(255,255,255,0.9)"
+                                  }}
+                                >
+                                  <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "0.95rem", md: "1.05rem" } }}>
+                                    ({connection.leftKey}) {connection.leftText}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: "flex", alignItems: "center", minWidth: { xs: 64, md: 92 } }}>
+                                  <Box sx={{ height: 4, flex: 1, borderRadius: 999, backgroundColor: connection.color }} />
+                                  <Box sx={{ width: 0, height: 0, borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderLeft: `10px solid ${connection.color}` }} />
+                                </Box>
+                                <Box
+                                  sx={{
+                                    px: 1,
+                                    py: 0.75,
+                                    borderRadius: 2,
+                                    border: `2px solid ${connection.color}`,
+                                    backgroundColor: "rgba(255,255,255,0.9)"
+                                  }}
+                                >
+                                  <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "0.95rem", md: "1.05rem" } }}>
+                                    {connection.rightKey}. {connection.rightText}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
+                        </GlassCard>
+                      )}
                       {question.imageUrl && (
                         <Box
                           component="img"
@@ -303,39 +469,107 @@ export const LedScreenPage = () => {
                         />
                       )}
                       {question.audioUrl && (
-                        <Box
-                          component="audio"
+                        <audio
                           ref={ledAudioRef}
                           key={`${question.id}-${question.audioUrl}`}
                           controls
-                          src={resolveMediaUrl(question.audioUrl)}
-                          sx={{ mt: 2.5, width: "100%" }}
-                        />
+                          crossOrigin="anonymous"
+                          style={{ marginTop: 20, width: "100%" }}
+                        >
+                          <source src={resolveMediaUrl(question.audioUrl)} />
+                        </audio>
                       )}
                     </GlassCard>
 
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1, sm: 1.2, md: 1.8 } }}>
-                      {options.map((opt) => (
-                        <OptionCard
-                          key={opt.id}
-                          highlighted={screen === "reveal" && reveal?.correctOptionIds.includes(opt.id)}
-                          sx={{ p: { xs: 1.4, sm: 1.7, md: 2.5 }, borderRadius: { xs: 3, md: 4 } }}
-                        >
+                    {screen === "reveal" &&
+                      ledSolutionVisible &&
+                      question?.type !== "matching" &&
+                      question?.type !== "ordering" &&
+                      revealDetailText.length > 0 && (
+                      <GlassCard
+                        sx={{
+                          p: { xs: 1.5, sm: 1.75, md: 2.25 },
+                          borderRadius: { xs: 3, md: 4 },
+                          border: "2px solid rgba(212,167,65,0.55)",
+                          background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.88))",
+                          flex: 1,
+                          minWidth: 0
+                        }}
+                      >
+                        {revealDetailText.map((line, idx) => (
                           <Typography
+                            key={`${line}-${idx}`}
                             component="div"
                             sx={{
-                              fontWeight: 800,
-                              color: "#17324d",
-                              fontSize: { xs: "1.2rem", sm: "1.45rem", md: "1.9rem" },
-                              lineHeight: 1.25,
-                              textAlign: "center"
+                              fontWeight: idx === 0 ? 900 : 700,
+                              color: idx === 0 ? "#8A5A00" : "#17324d",
+                              fontSize: { xs: idx === 0 ? "1.05rem" : "0.95rem", md: idx === 0 ? "1.25rem" : "1.05rem" },
+                              lineHeight: 1.45,
+                              mt: idx === 0 ? 0 : 0.6
                             }}
                           >
-                            {opt.label}. {opt.content}
+                            {line}
                           </Typography>
-                        </OptionCard>
-                      ))}
-                    </Box>
+                        ))}
+                      </GlassCard>
+                    )}
+
+                    {options.length > 0 && (
+                      <Box
+                        sx={{
+                          flex: 1,
+                          minWidth: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: { xs: 1, sm: 1.2, md: 1.8 }
+                        }}
+                      >
+                        {options.map((opt) => (
+                          <OptionCard
+                            key={opt.id}
+                            highlighted={
+                              screen === "reveal" && ledSolutionVisible && !!reveal?.correctOptionIds.includes(opt.id)
+                            }
+                            sx={{ p: { xs: 1.4, sm: 1.7, md: 2.5 }, borderRadius: { xs: 3, md: 4 } }}
+                          >
+                            <Typography
+                              component="div"
+                              sx={{
+                                fontWeight: 800,
+                                color: "#17324d",
+                                fontSize: { xs: "1.2rem", sm: "1.45rem", md: "1.9rem" },
+                                lineHeight: 1.25,
+                                textAlign: "center"
+                              }}
+                            >
+                              {opt.label}. {opt.content}
+                            </Typography>
+                          </OptionCard>
+                        ))}
+                        {screen === "reveal" && ledSolutionVisible && question?.type === "ordering" && acceptedAnswerCompact && (
+                          <GlassCard
+                            sx={{
+                              p: { xs: 1.2, sm: 1.5, md: 1.8 },
+                              borderRadius: { xs: 3, md: 4 },
+                              border: "2px solid rgba(212,167,65,0.55)",
+                              background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.88))"
+                            }}
+                          >
+                            <Typography
+                              component="div"
+                              sx={{
+                                fontWeight: 900,
+                                color: "#8A5A00",
+                                textAlign: "center",
+                                fontSize: { xs: "1rem", md: "1.15rem" }
+                              }}
+                            >
+                              Đáp án chấp nhận: {acceptedAnswerCompact}
+                            </Typography>
+                          </GlassCard>
+                        )}
+                      </Box>
+                    )}
                   </Box>
                 </Fade>
               )}
@@ -374,7 +608,7 @@ export const LedScreenPage = () => {
               mx: "auto",
               display: "grid",
               gap: { xs: 1.5, md: 2 },
-              gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" }
+              gridTemplateColumns: "1fr"
             }}
           >
             {teamList.teams.map((team) => (

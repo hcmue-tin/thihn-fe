@@ -19,6 +19,8 @@ type LiveButtonsProps = {
   onRetakeQuestion: () => void;
   onShowTeamScore: () => void;
   onShowLeaderboard: () => void;
+  onRevealSolutionOnLed: () => void;
+  isLedSolutionRevealed: boolean;
 };
 
 export const LiveButtons = ({
@@ -33,7 +35,9 @@ export const LiveButtons = ({
   onStopShowAnswer,
   onRetakeQuestion,
   onShowTeamScore,
-  onShowLeaderboard
+  onShowLeaderboard,
+  onRevealSolutionOnLed,
+  isLedSolutionRevealed
 }: LiveButtonsProps) => (
   <Stack spacing={1.5} sx={{ mt: 1 }}>
     <Button size="large" variant="contained" color="info" disabled={!canGoWaiting(screen) || pendingAction} onClick={onGoWaiting}>
@@ -55,7 +59,16 @@ export const LiveButtons = ({
       Bắt đầu đếm ngược
     </Button>
     <Button size="large" variant="contained" color="warning" disabled={!canStopShowAnswer(screen) || pendingAction} onClick={onStopShowAnswer}>
-      Dừng / Hiện đáp án
+      B1: Dừng & hiện đáp án thí sinh
+    </Button>
+    <Button
+      size="large"
+      variant="outlined"
+      color="primary"
+      disabled={screen !== "reveal" || pendingAction || isLedSolutionRevealed}
+      onClick={onRevealSolutionOnLed}
+    >
+      {isLedSolutionRevealed ? "B2: Đã hiển thị đáp án đúng" : "B2: LED hiển thị đáp án đúng"}
     </Button>
     <Button size="large" variant="outlined" color="secondary" disabled={!selectedQuestionId || pendingAction} onClick={onRetakeQuestion}>
       Cho thi lại câu này

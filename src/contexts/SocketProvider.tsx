@@ -25,6 +25,10 @@ type RealtimeStore = {
   countdownSeconds: number;
   rulesContent: string | null;
   backgroundUrl: string | null;
+  ledBackgroundUrl: string | null;
+  contestantBackgroundUrl: string | null;
+  questionShowSeq: number;
+  ledSolutionVisible: boolean;
   reveal: AnswerRevealPayload | null;
   teamList: TeamListPayload | null;
   teamScore: TeamScorePayload | null;
@@ -48,6 +52,10 @@ const initialStore: RealtimeStore = {
   countdownSeconds: 0,
   rulesContent: null,
   backgroundUrl: null,
+  ledBackgroundUrl: null,
+  contestantBackgroundUrl: null,
+  questionShowSeq: 0,
+  ledSolutionVisible: false,
   reveal: null,
   teamList: null,
   teamScore: null,
@@ -68,6 +76,20 @@ type SocketProviderProps = {
 export const SocketProvider = ({ children }: SocketProviderProps) => {
   const [store, setStore] = useState<RealtimeStore>(initialStore);
   const socketRef = useRef<Socket | null>(null);
+  const applyVisualData = (
+    source: {
+      rulesContent?: string | null;
+      backgroundUrl?: string | null;
+      ledBackgroundUrl?: string | null;
+      contestantBackgroundUrl?: string | null;
+    },
+    prev: RealtimeStore
+  ) => ({
+    rulesContent: source.rulesContent ?? prev.rulesContent,
+    backgroundUrl: source.backgroundUrl ?? prev.backgroundUrl,
+    ledBackgroundUrl: source.ledBackgroundUrl ?? source.backgroundUrl ?? prev.ledBackgroundUrl,
+    contestantBackgroundUrl: source.contestantBackgroundUrl ?? source.backgroundUrl ?? prev.contestantBackgroundUrl
+  });
 
   const disconnectSocket = useCallback((): void => {
     if (socketRef.current) {
@@ -92,41 +114,77 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         fullState,
         screen: fullState.screen,
         countdownEndsAt: fullState.countdownEndAt ? new Date(fullState.countdownEndAt).getTime() : null,
-        rulesContent: fullState.rulesContent ?? prev.rulesContent,
-        backgroundUrl: fullState.backgroundUrl ?? prev.backgroundUrl
-      }));
-    });
-
-    socket.on("screen:change", ({ screen, data }: { screen: ContestScreen; data?: { rulesContent?: string | null; backgroundUrl?: string | null } }) => {
-      setStore((prev) => ({
-        ...prev,
-        screen,
-        rulesContent: data?.rulesContent ?? prev.rulesContent,
-        backgroundUrl: data?.backgroundUrl ?? prev.backgroundUrl,
-        fullState: prev.fullState
-          ? {
-              ...prev.fullState,
-              screen,
-              rulesContent: data?.rulesContent ?? prev.fullState.rulesContent,
-              backgroundUrl: data?.backgroundUrl ?? prev.fullState.backgroundUrl
-            }
-          : prev.fullState
+        latestAnswerResult: fullState.screen === "idle" ? null : prev.latestAnswerResult,
+        ...applyVisualData(fullState, prev)
       }));
     });
 
     socket.on(
+      "screen:change",
+      ({
+        screen,
+        data
+      }: {
+        screen: ContestScreen;
+        data?: {
+          rulesContent?: string | null;
+          backgroundUrl?: string | null;
+          ledBackgroundUrl?: string | null;
+          contestantBackgroundUrl?: string | null;
+        };
+      }) => {
+        setStore((prev) => ({
+          ...prev,
+          screen,
+          latestAnswerResult: screen === "idle" ? null : prev.latestAnswerResult,
+          ...applyVisualData(data ?? {}, prev),
+          fullState: prev.fullState
+            ? {
+                ...prev.fullState,
+                screen,
+                rulesContent: data?.rulesContent ?? prev.fullState.rulesContent,
+                backgroundUrl: data?.backgroundUrl ?? prev.fullState.backgroundUrl,
+                ledBackgroundUrl: data?.ledBackgroundUrl ?? data?.backgroundUrl ?? prev.fullState.ledBackgroundUrl,
+                contestantBackgroundUrl: data?.contestantBackgroundUrl ?? data?.backgroundUrl ?? prev.fullState.contestantBackgroundUrl
+              }
+            : prev.fullState
+        }));
+      }
+    );
+
+    socket.on(
       "question:show",
-      ({ question, options, countdownSeconds }: { question: QuestionPayload; options: QuestionOption[]; countdownSeconds: number }) => {
+      ({
+        question,
+        options,
+        countdownSeconds
+      }: {
+        question: QuestionPayload;
+        options: QuestionOption[];
+        countdownSeconds: number;
+        shownAt?: number;
+      }) => {
         setStore((prev) => ({
           ...prev,
           question,
           options,
           countdownSeconds,
           reveal: null,
-          answerResults: null
+          answerResults: null,
+          latestAnswerResult: null,
+          questionShowSeq: prev.questionShowSeq + 1,
+          ledSolutionVisible: false
         }));
       }
     );
+
+    socket.on("led:show-solution", () => {
+      setStore((prev) => ({ ...prev, ledSolutionVisible: true }));
+    });
+
+    socket.on("led:hide-solution", () => {
+      setStore((prev) => ({ ...prev, ledSolutionVisible: false }));
+    });
 
     socket.on("countdown:start", ({ endsAt, seconds }: { endsAt: number; seconds: number }) => {
       setStore((prev) => ({

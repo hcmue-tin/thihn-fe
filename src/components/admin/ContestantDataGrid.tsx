@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -21,6 +22,7 @@ import {
 } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import * as XLSX from "xlsx";
 
 type Contestant = { id: number; teamId: number | null; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
 type Team = { id: number; name: string };
@@ -31,6 +33,12 @@ type ContestantDataGridProps = {
   contestantCode: string;
   contestantPassword: string;
   teams: Team[];
+  selectedContestantIds: number[];
+  bulkTeamTarget: number | "";
+  onToggleContestantSelected: (id: number) => void;
+  onBulkTeamTargetChange: (teamId: number | "") => void;
+  onBulkAssignTeam: () => void | Promise<void>;
+  onImportExcel: (file: File) => void | Promise<void>;
   onContestantNameChange: (value: string) => void;
   onContestantCodeChange: (value: string) => void;
   onContestantPasswordChange: (value: string) => void;
@@ -45,6 +53,12 @@ export const ContestantDataGrid = ({
   contestantCode,
   contestantPassword,
   teams,
+  selectedContestantIds,
+  bulkTeamTarget,
+  onToggleContestantSelected,
+  onBulkTeamTargetChange,
+  onBulkAssignTeam,
+  onImportExcel,
   onContestantNameChange,
   onContestantCodeChange,
   onContestantPasswordChange,
@@ -60,6 +74,10 @@ export const ContestantDataGrid = ({
   const [editUnit, setEditUnit] = useState("");
   const [editTeamId, setEditTeamId] = useState<number | "">("");
   const teamMap = useMemo(() => new Map(teams.map((t) => [t.id, t.name])), [teams]);
+  const assignableContestants = useMemo(() => contestants.filter((c) => c.teamId === null), [contestants]);
+  const allAssignableSelected =
+    assignableContestants.length > 0 && assignableContestants.every((c) => selectedContestantIds.includes(c.id));
+  const selectedAssignableCount = assignableContestants.filter((c) => selectedContestantIds.includes(c.id)).length;
 
   const openEditFor = (c: Contestant) => {
     setEditTarget(c);
@@ -70,20 +88,87 @@ export const ContestantDataGrid = ({
     setOpenEdit(true);
   };
 
+  const downloadExcelTemplate = (): void => {
+    const rows = [
+      ["Mã", "Tên", "Đơn vị", "Đội"],
+      ["TS001", "Nguyễn Văn A", "Khoa CNTT", "Đội 1"],
+      ["TS002", "Trần Thị B", "Khoa Toán", "Đội 2"]
+    ];
+    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "MauImport");
+    XLSX.writeFile(workbook, "mau_import_thi_sinh.xlsx");
+  };
+
   return (
     <Card>
       <CardContent>
         <Typography variant="h6">Quản lý thí sinh</Typography>
-        <Button
-          sx={{ my: 1.5, background: "linear-gradient(135deg, #1A8C8E, #0F6B6D)", "&:hover": { background: "linear-gradient(135deg, #0F6B6D, #0A5557)" } }}
-          variant="contained"
-          onClick={() => setOpenCreate(true)}
-        >
-          + Tạo thí sinh
-        </Button>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ my: 1.5, flexWrap: "wrap", alignItems: "center" }}>
+          <Button
+            sx={{ background: "linear-gradient(135deg, #1A8C8E, #0F6B6D)", "&:hover": { background: "linear-gradient(135deg, #0F6B6D, #0A5557)" } }}
+            variant="contained"
+            onClick={() => setOpenCreate(true)}
+          >
+            + Tạo thí sinh
+          </Button>
+          <Button variant="outlined" component="label" sx={{ borderColor: "#1A8C8E", color: "#0F6B6D" }}>
+            Import Excel
+            <input
+              type="file"
+              hidden
+              accept=".xlsx,.xls"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) await onImportExcel(file);
+                e.currentTarget.value = "";
+              }}
+            />
+          </Button>
+          <Button variant="text" onClick={downloadExcelTemplate} sx={{ color: "#0F6B6D", textTransform: "none" }}>
+            Tải file mẫu Excel
+          </Button>
+          <TextField
+            select
+            size="small"
+            label="Gán đội (đã chọn)"
+            value={bulkTeamTarget}
+            onChange={(e) => onBulkTeamTargetChange(e.target.value === "" ? "" : Number(e.target.value))}
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="">Chọn đội…</MenuItem>
+            {teams.map((t) => (
+              <MenuItem key={t.id} value={t.id}>
+                {t.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Button variant="contained" color="secondary" disabled={selectedContestantIds.length === 0 || bulkTeamTarget === ""} onClick={() => void onBulkAssignTeam()}>
+            Gán {selectedContestantIds.length} thí sinh
+          </Button>
+        </Stack>
         <Table size="small">
           <TableHead>
             <TableRow sx={{ "& th": { fontWeight: 700, color: "#0F6B6D" } }}>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  size="small"
+                  indeterminate={selectedAssignableCount > 0 && !allAssignableSelected}
+                  checked={allAssignableSelected}
+                  disabled={assignableContestants.length === 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      assignableContestants.forEach((c) => {
+                        if (!selectedContestantIds.includes(c.id)) onToggleContestantSelected(c.id);
+                      });
+                    } else {
+                      assignableContestants.forEach((c) => {
+                        if (selectedContestantIds.includes(c.id)) onToggleContestantSelected(c.id);
+                      });
+                    }
+                  }}
+                />
+              </TableCell>
               <TableCell>Tên</TableCell>
               <TableCell>Mã</TableCell>
               <TableCell>Đơn vị</TableCell>
@@ -95,6 +180,11 @@ export const ContestantDataGrid = ({
           <TableBody>
             {contestants.map((c) => (
               <TableRow key={c.id} sx={{ "&:nth-of-type(odd)": { bgcolor: "#F7FBFD" } }}>
+                <TableCell padding="checkbox">
+                  {c.teamId === null ? (
+                    <Checkbox size="small" checked={selectedContestantIds.includes(c.id)} onChange={() => onToggleContestantSelected(c.id)} />
+                  ) : null}
+                </TableCell>
                 <TableCell>{c.name}</TableCell>
                 <TableCell>{c.code}</TableCell>
                 <TableCell>{c.unit || "—"}</TableCell>

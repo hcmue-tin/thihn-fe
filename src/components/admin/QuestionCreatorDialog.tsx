@@ -6,14 +6,19 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   LinearProgress,
   MenuItem,
   Stack,
-  Switch,
-  TextField
+  TextField,
+  Typography
 } from "@mui/material";
 import { api } from "../../api";
+import { MatchingEditor } from "./MatchingEditor";
+import { MATCHING_MAX, MATCHING_MIN } from "./matchingEditorUtils";
+import { buildQuestionContent, parseAcceptedAnswers } from "./questionFormUtils";
+import { AcceptedAnswerEditor } from "./question-edit/AcceptedAnswerEditor";
+import { ChoiceOptionsEditor } from "./question-edit/ChoiceOptionsEditor";
+import type { QuestionType } from "../../types/question";
 
 type Props = {
   open: boolean;
@@ -23,14 +28,20 @@ type Props = {
   onCreated: () => Promise<void>;
 };
 
-type QuestionType = "true_false" | "single_choice" | "multiple_choice" | "fill_blank" | "ordering" | "matching";
-
 const typeOptions: Array<{ value: QuestionType; label: string }> = [
   { value: "true_false", label: "Dạng 1 - Phán đoán đúng/sai" },
-  { value: "single_choice", label: "Dạng 2 - Chọn đáp án đúng" },
+  { value: "single_choice", label: "Dạng 2 - Chọn một đáp án đúng" },
+  { value: "multiple_choice", label: "Dạng 2b - Chọn nhiều đáp án đúng" },
   { value: "fill_blank", label: "Dạng 3 - Điền vào chỗ trống" },
   { value: "ordering", label: "Dạng 4 - Sắp xếp thành câu/đoạn" },
   { value: "matching", label: "Dạng 5 - Nối nội dung tương ứng" }
+];
+
+const defaultFourOptions = [
+  { label: "A", content: "", isCorrect: false, orderNum: 1 },
+  { label: "B", content: "", isCorrect: false, orderNum: 2 },
+  { label: "C", content: "", isCorrect: false, orderNum: 3 },
+  { label: "D", content: "", isCorrect: false, orderNum: 4 }
 ];
 
 export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaultOrderNum, onCreated }: Props) => {
@@ -41,24 +52,58 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
   const [orderNum, setOrderNum] = useState(defaultOrderNum);
   const [audioUrl, setAudioUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [acceptedAnswer, setAcceptedAnswer] = useState("");
+  const [orderingAnswer, setOrderingAnswer] = useState("");
+  const [matchingN, setMatchingN] = useState(4);
+  const [matchingLeft, setMatchingLeft] = useState<string[]>(() => Array(4).fill(""));
+  const [matchingRight, setMatchingRight] = useState<string[]>(() => Array(4).fill(""));
+  const [matchingAccepted, setMatchingAccepted] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
-  const [options, setOptions] = useState([
-    { label: "A", content: "", isCorrect: false, orderNum: 1 },
-    { label: "B", content: "", isCorrect: false, orderNum: 2 },
-    { label: "C", content: "", isCorrect: false, orderNum: 3 },
-    { label: "D", content: "", isCorrect: false, orderNum: 4 }
-  ]);
+  const [options, setOptions] = useState(defaultFourOptions);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const showOptions = useMemo(() => ["true_false", "single_choice", "multiple_choice", "fill_blank"].includes(type), [type]);
-  const showAccepted = useMemo(() => ["fill_blank", "ordering", "matching"].includes(type), [type]);
+  const showOptions = useMemo(
+    () => type !== "matching",
+    [type]
+  );
 
   useEffect(() => {
     if (open) {
       setOrderNum(defaultOrderNum);
     }
   }, [open, defaultOrderNum]);
+
+  useEffect(() => {
+    if (type === "true_false") {
+      setOptions([
+        { label: "A", content: "", isCorrect: false, orderNum: 1 },
+        { label: "B", content: "", isCorrect: false, orderNum: 2 }
+      ]);
+    } else if (type === "ordering" || type === "single_choice" || type === "multiple_choice" || type === "fill_blank") {
+      setOptions(defaultFourOptions.map((o) => ({ ...o })));
+    }
+    if (type === "matching") {
+      setMatchingN(4);
+      setMatchingLeft(Array(4).fill(""));
+      setMatchingRight(Array(4).fill(""));
+      setMatchingAccepted("");
+    }
+  }, [type]);
+
+  const resizeMatching = (n: number): void => {
+    const clamp = Math.min(MATCHING_MAX, Math.max(MATCHING_MIN, n));
+    setMatchingN(clamp);
+    setMatchingLeft((prev) => {
+      const next = [...prev];
+      while (next.length < clamp) next.push("");
+      return next.slice(0, clamp);
+    });
+    setMatchingRight((prev) => {
+      const next = [...prev];
+      while (next.length < clamp) next.push("");
+      return next.slice(0, clamp);
+    });
+  };
 
   const reset = () => {
     setType("single_choice");
@@ -68,47 +113,62 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
     setOrderNum(defaultOrderNum);
     setAudioUrl("");
     setImageUrl("");
-    setAcceptedAnswer("");
-    setOptions([
-      { label: "A", content: "", isCorrect: false, orderNum: 1 },
-      { label: "B", content: "", isCorrect: false, orderNum: 2 },
-      { label: "C", content: "", isCorrect: false, orderNum: 3 },
-      { label: "D", content: "", isCorrect: false, orderNum: 4 }
-    ]);
+    setOrderingAnswer("");
+    setMatchingN(4);
+    setMatchingLeft(Array(4).fill(""));
+    setMatchingRight(Array(4).fill(""));
+    setMatchingAccepted("");
+    setOptions(defaultFourOptions.map((o) => ({ ...o })));
+    setSubmitError(null);
   };
 
   const submit = async () => {
     if (!selectedExamSetId) return;
-    await api.post("/questions", {
-      examSetId: selectedExamSetId,
-      type,
-      content,
-      imageUrl: imageUrl || null,
-      audioUrl: audioUrl || null,
-      countdownSeconds,
-      score,
-      orderNum,
-      options: showOptions
-        ? options
-            .filter((o) => o.content.trim().length > 0 || type === "true_false")
-            .map((o) => ({
-              label: o.label,
-              content: o.content,
-              isCorrect: o.isCorrect,
-              orderNum: o.orderNum
-            }))
-        : [],
-      fillBlankAnswers: showAccepted
-        ? acceptedAnswer
-            .split(";")
-            .map((s) => s.trim())
-            .filter(Boolean)
-            .map((accepted) => ({ acceptedAnswer: accepted }))
-        : []
-    });
-    await onCreated();
-    reset();
-    onClose();
+    setSubmitError(null);
+    let finalContent = content.trim();
+    let fillBlankAnswers: Array<{ acceptedAnswer: string }> = [];
+
+    if (type === "ordering") {
+      fillBlankAnswers = parseAcceptedAnswers(orderingAnswer, type);
+    } else if (type === "matching") {
+      finalContent = buildQuestionContent(type, content, matchingLeft, matchingRight);
+      fillBlankAnswers = parseAcceptedAnswers(matchingAccepted, type);
+    }
+
+    const optionsPayload = showOptions
+      ? options
+          .filter((o) => o.content.trim().length > 0)
+          .map((o) => ({
+            label: o.label,
+            content: o.content,
+            isCorrect: o.isCorrect,
+            orderNum: o.orderNum
+          }))
+      : [];
+
+    try {
+      await api.post("/questions", {
+        examSetId: selectedExamSetId,
+        type,
+        content: finalContent,
+        imageUrl: imageUrl || null,
+        audioUrl: audioUrl || null,
+        countdownSeconds,
+        score,
+        orderNum,
+        options: optionsPayload,
+        fillBlankAnswers
+      });
+      await onCreated();
+      reset();
+      onClose();
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "response" in e
+          ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message ?? "")
+          : "";
+      setSubmitError(msg || "Không thể lưu câu hỏi");
+    }
   };
 
   const uploadFile = async (file: File, kind: "image" | "audio"): Promise<void> => {
@@ -151,7 +211,29 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
             </MenuItem>
           ))}
         </TextField>
+
         <TextField size="small" label="Nội dung câu hỏi" value={content} onChange={(e) => setContent(e.target.value)} multiline minRows={2} />
+        {type === "fill_blank" && (
+          <Typography variant="body2" sx={{ color: "#475569" }}>
+            Dùng <strong>___</strong> trong câu để hiển thị chỗ trống. Thí sinh chọn một trong bốn đáp án
+            A–D.
+          </Typography>
+        )}
+
+        {type === "matching" && (
+          <Box component="ul" sx={{ color: "#475569", m: 0, pl: 2.5 }}>
+            <Typography component="li" variant="body2">
+              Cột trái: mục <strong>1, 2, 3, 4</strong> — cột phải: <strong>A, B, C, D</strong>.
+            </Typography>
+            <Typography component="li" variant="body2">
+              Có thể tăng lên <strong>8 cặp</strong>.
+            </Typography>
+            <Typography component="li" variant="body2">
+              Đáp án đúng: nhập <strong>1:A;2:B;3:C;4:D</strong> hoặc ghép nhanh bên dưới.
+            </Typography>
+          </Box>
+        )}
+
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
           <TextField size="small" label="Điểm" type="number" value={score} onChange={(e) => setScore(Number(e.target.value))} />
           <TextField
@@ -189,7 +271,7 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
             <input
               type="file"
               hidden
-              accept="audio/*"
+              accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.webm"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (file) {
@@ -203,57 +285,57 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
         </Stack>
 
         {showOptions && (
-          <Stack spacing={1}>
-            {options.map((opt, idx) => (
-              <Box key={opt.label} sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1, alignItems: "center" }}>
-                <TextField
-                  size="small"
-                  label={`Đáp án ${opt.label}`}
-                  value={type === "true_false" ? (idx === 0 ? "正确" : idx === 1 ? "错误" : opt.content) : opt.content}
-                  onChange={(e) => {
-                    const next = [...options];
-                    next[idx].content = e.target.value;
-                    setOptions(next);
-                  }}
-                  fullWidth
-                  disabled={type === "true_false" && idx < 2}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={opt.isCorrect}
-                      onChange={(e) => {
-                        const next = [...options];
-                        next[idx].isCorrect = e.target.checked;
-                        if (["true_false", "single_choice", "fill_blank"].includes(type) && e.target.checked) {
-                          next.forEach((it, i) => {
-                            if (i !== idx) it.isCorrect = false;
-                          });
-                        }
-                        setOptions(next);
-                      }}
-                    />
-                  }
-                  label="Đúng"
-                />
-              </Box>
-            ))}
-          </Stack>
+          <ChoiceOptionsEditor type={type} options={options} onChange={setOptions} />
         )}
 
-        {showAccepted && (
-          <TextField
-            size="small"
-            label="Đáp án chuẩn (cách nhau bằng ;)"
-            value={acceptedAnswer}
-            onChange={(e) => setAcceptedAnswer(e.target.value)}
-            helperText='Ví dụ: BDCA hoặc 1:C;2:D;3:A hoặc "井底之蛙"'
+        {type === "ordering" && (
+          <AcceptedAnswerEditor label="Thứ tự đúng" value={orderingAnswer} onChange={setOrderingAnswer} helperText="Ví dụ: BDCA" />
+        )}
+
+        {type === "matching" && (
+          <MatchingEditor
+            count={matchingN}
+            minCount={MATCHING_MIN}
+            maxCount={MATCHING_MAX}
+            leftItems={matchingLeft}
+            rightItems={matchingRight}
+            accepted={matchingAccepted}
+            acceptedLabel="Đáp án mẫu: 1:A;2:B;3:C;4:D"
+            onResize={resizeMatching}
+            onLeftChange={(index, value) => {
+              const next = [...matchingLeft];
+              next[index] = value;
+              setMatchingLeft(next);
+            }}
+            onRightChange={(index, value) => {
+              const next = [...matchingRight];
+              next[index] = value;
+              setMatchingRight(next);
+            }}
+            onAcceptedChange={setMatchingAccepted}
           />
+        )}
+
+        {submitError && (
+          <Typography color="error" variant="body2">
+            {submitError}
+          </Typography>
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Hủy</Button>
-        <Button variant="contained" onClick={submit} disabled={!selectedExamSetId || !content}>
+        <Button
+          variant="contained"
+          onClick={() => void submit()}
+          disabled={
+            !selectedExamSetId ||
+            !content.trim() ||
+            (type === "matching" &&
+              (!matchingAccepted.trim() ||
+                !matchingLeft.some((s) => s.trim()) ||
+                !matchingRight.some((s) => s.trim())))
+          }
+        >
           Lưu câu hỏi
         </Button>
       </DialogActions>

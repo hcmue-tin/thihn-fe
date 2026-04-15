@@ -16,16 +16,14 @@ type ExamControlRoomProps = {
   examSets: ExamSet[];
   questions: QuestionPayload[];
   teams: Team[];
-  activeTeamIds: number[];
+  activeTeamId: number | null;
   selectedExamSetId: number | null;
   selectedQuestionId: number | null;
   selectedQuestionIds: number[];
   pendingAction: boolean;
   onSelectExamSet: (examSetId: number) => void;
   onSelectQuestion: (questionId: number) => void;
-  onToggleTeam: (teamId: number) => void;
-  onSelectAllTeams: () => void;
-  onClearTeams: () => void;
+  onSelectTeam: (teamId: number | null) => void;
   onGoWaiting: () => void;
   onResetSession: () => void;
   onShowQuestion: () => void;
@@ -36,6 +34,8 @@ type ExamControlRoomProps = {
   onShowLeaderboard: () => void;
   onShowRules: () => void;
   onShowTeamList: () => void;
+  onRevealSolutionOnLed: () => void;
+  isLedSolutionRevealed: boolean;
   questionAudioUrl?: string | null;
   onReplayQuestionAudio: () => void;
   onSelectAllQuestions: () => void;
@@ -49,16 +49,14 @@ export const ExamControlRoom = ({
   examSets,
   questions,
   teams,
-  activeTeamIds,
+  activeTeamId,
   selectedExamSetId,
   selectedQuestionId,
   selectedQuestionIds,
   pendingAction,
   onSelectExamSet,
   onSelectQuestion,
-  onToggleTeam,
-  onSelectAllTeams,
-  onClearTeams,
+  onSelectTeam,
   onGoWaiting,
   onResetSession,
   onShowQuestion,
@@ -69,6 +67,8 @@ export const ExamControlRoom = ({
   onShowLeaderboard,
   onShowRules,
   onShowTeamList,
+  onRevealSolutionOnLed,
+  isLedSolutionRevealed,
   questionAudioUrl,
   onReplayQuestionAudio,
   onSelectAllQuestions,
@@ -97,31 +97,19 @@ export const ExamControlRoom = ({
             <GroupsRoundedIcon fontSize="small" />
             Đội tham gia vòng thi
           </Typography>
-          <Typography variant="caption" sx={{ color: "#4A7A8A" }}>({activeTeamIds.length}/{teams.length} đội)</Typography>
+          <Typography variant="caption" sx={{ color: "#4A7A8A" }}>
+            (Mỗi phiên thi một đội{activeTeamId ? "" : " — chưa chọn"})
+          </Typography>
           <Box sx={{ flex: 1 }} />
-          <Typography
-            component="span"
-            onClick={onSelectAllTeams}
-            sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#1A8C8E", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
-          >
-            Chọn tất cả
-          </Typography>
-          <Typography
-            component="span"
-            onClick={onClearTeams}
-            sx={{ cursor: "pointer", fontSize: "0.75rem", color: "#4A7A8A", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
-          >
-            Bỏ chọn
-          </Typography>
         </Box>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
           {teams.map((t) => {
-            const isActive = activeTeamIds.includes(t.id);
+            const isActive = activeTeamId === t.id;
             return (
               <Chip
                 key={t.id}
                 label={t.name}
-                onClick={() => onToggleTeam(t.id)}
+                onClick={() => onSelectTeam(isActive ? null : t.id)}
                 sx={{
                   fontWeight: 700,
                   cursor: "pointer",
@@ -257,6 +245,8 @@ export const ExamControlRoom = ({
             onRetakeQuestion={onRetakeQuestion}
             onShowTeamScore={onShowTeamScore}
             onShowLeaderboard={onShowLeaderboard}
+            onRevealSolutionOnLed={onRevealSolutionOnLed}
+            isLedSolutionRevealed={isLedSolutionRevealed}
           />
         </Grid>
       </Grid>
