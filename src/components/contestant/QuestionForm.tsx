@@ -14,6 +14,7 @@ type QuestionFormProps = {
   selectedOptionIds: number[];
   fillText: string;
   progress: number;
+  countdownValue: number | null;
   locked: boolean;
   isLoading: boolean;
   isSubmitted: boolean;
@@ -31,6 +32,7 @@ export const QuestionForm = ({
   selectedOptionIds,
   fillText,
   progress,
+  countdownValue,
   locked,
   isLoading,
   isSubmitted,
@@ -57,6 +59,28 @@ export const QuestionForm = ({
     <Card elevation={0} sx={{ backgroundColor: 'transparent' }}>
       <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
         <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 10, mb: 2, '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #D4A741, #F5D98A)' }, bgcolor: 'rgba(184,217,236,0.3)' }} />
+
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: { xs: 1.5, md: 2 }, mb: 2, flexWrap: "wrap" }}>
+          <Box sx={{ flex: 1, minWidth: 0 }} />
+          {countdownValue !== null && (
+            <Box
+              sx={{
+                minWidth: { xs: 96, sm: 120, md: 148 },
+                px: { xs: 1.25, sm: 1.5, md: 1.75 },
+                py: { xs: 0.75, sm: 1, md: 1.25 },
+                borderRadius: 3,
+                textAlign: "center",
+                background: "rgba(255,255,255,0.84)",
+                border: "1px solid rgba(26,140,142,0.22)",
+                boxShadow: "0 10px 24px rgba(23,50,77,0.14)"
+              }}
+            >
+              <Typography sx={{ fontWeight: 900, color: "#17324d", fontSize: { xs: "2.5rem", sm: "3.2rem", md: "4rem" }, lineHeight: 1 }}>
+                {countdownValue}
+              </Typography>
+            </Box>
+          )}
+        </Box>
 
         <Box sx={{ display: "flex", flexDirection: { xs: "column", md: isChoiceLayout ? "row" : "column" }, gap: { xs: 2, md: 3 }, alignItems: "flex-start" }}>
           <Box sx={{ flex: 1, width: "100%", minWidth: 0 }}>

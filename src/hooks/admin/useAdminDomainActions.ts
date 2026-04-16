@@ -109,7 +109,7 @@ export const useContestantActions = ({
     });
     const { created, skipped } = res.data.data as { created: number; skipped: number };
     if (adminToken) await loadCoreData(adminToken);
-    toastApp(`Import xong: tạo ${created}, bỏ qua ${skipped}`, "success");
+    toastApp(`Import xong: tạo ${created}, bỏ qua ${skipped}. File Excel cần có cột mật khẩu.`, "success");
   };
 
   const onAddContestant = async (): Promise<void> => {

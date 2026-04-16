@@ -49,6 +49,13 @@ export const ContestantPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [locked, setLocked] = useState(false);
   const [remainingMs, setRemainingMs] = useState(0);
+  const passwordInputProps = {
+    autoCapitalize: "none" as const,
+    autoCorrect: "off" as const,
+    spellCheck: false,
+    inputMode: "text" as const,
+    style: { imeMode: "disabled" as never }
+  };
 
   useEffect(() => {
     if (token) {
@@ -139,6 +146,12 @@ export const ContestantPage = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && code && password && !isLoading) {
+                      void handleLogin();
+                    }
+                  }}
+                  slotProps={{ htmlInput: passwordInputProps }}
                   fullWidth
                 />
                 {error && <Alert severity="error">{error}</Alert>}
@@ -155,13 +168,16 @@ export const ContestantPage = () => {
 
   const showWaiting = screen === "idle" || screen === "waiting" || screen === "rules" || screen === "team_list";
   const showRules = screen === "rules";
-  const isBlockedByTeam =
-    fullState?.activeTeamId != null &&
-    identity.teamId !== fullState.activeTeamId;
-  const showQuestion = !isBlockedByTeam && (screen === "question" || screen === "countdown") && question;
-  const showResult = !isBlockedByTeam && screen === "reveal" && latestAnswerResult;
+  const isDuringQuestionFlow = screen === "question" || screen === "countdown" || screen === "reveal";
+  const activeTeamId = fullState?.activeTeamId ?? null;
+  const isTeamNotSelected = isDuringQuestionFlow && activeTeamId == null;
+  const isBlockedByTeam = isDuringQuestionFlow && activeTeamId != null && identity.teamId !== activeTeamId;
+  const shouldBlockInteraction = isTeamNotSelected || isBlockedByTeam;
+
+  const showQuestion = !shouldBlockInteraction && isDuringQuestionFlow && question;
+  const showResult = !shouldBlockInteraction && screen === "reveal" && latestAnswerResult;
   const waitingForCountdown = screen === "question";
-  const canSubmit = !isBlockedByTeam && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
+  const canSubmit = !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
   const contestantBg = contestantBackgroundUrl ?? backgroundUrl;
   const contestantBackgroundImage = contestantBg ? resolveMediaUrl(contestantBg) : null;
 
@@ -189,29 +205,6 @@ export const ContestantPage = () => {
           backgroundAttachment: "fixed"
         }}
       >
-        {!isBlockedByTeam && (screen === "question" || screen === "countdown") && (
-          <Box
-            sx={{
-              position: "fixed",
-              top: { xs: 8, sm: 10, md: 12 },
-              right: { xs: 8, sm: 10, md: 12 },
-              zIndex: 30,
-              textAlign: "right",
-              px: { xs: 1.25, sm: 1.5, md: 1.75 },
-              py: { xs: 0.75, sm: 1, md: 1.25 },
-              borderRadius: 3,
-              background: "rgba(255,255,255,0.75)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(26,140,142,0.22)",
-              boxShadow: "0 10px 24px rgba(23,50,77,0.14)",
-              pointerEvents: "none"
-            }}
-          >
-            <Typography sx={{ fontWeight: 900, color: "#17324d", fontSize: { xs: "2.3rem", sm: "2.9rem", md: "3.6rem" }, lineHeight: 1 }}>
-              {screen === "countdown" ? Math.ceil(remainingMs / 1000) : "--"}
-            </Typography>
-          </Box>
-        )}
         <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1160, lg: 1320 }, mx: "auto", position: "relative", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 2, sm: 3, md: 3.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", justifyContent: "space-between", gap: 1, mb: 0.5 }}>
             <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", flex: 1, fontSize: { xs: "1rem", sm: "1.25rem" } }}>
@@ -232,12 +225,16 @@ export const ContestantPage = () => {
             </Box>
           </Box>
 
-        {isBlockedByTeam && (
+        {shouldBlockInteraction && (
           <Alert severity="warning" sx={{ mb: 2, borderRadius: 3 }}>
-            Bạn không thuộc đội đang thi. Vui lòng chờ đến lượt đội của bạn.
+            {isTeamNotSelected ? "Chưa có đội nào được chọn. Vui lòng chờ đến lượt đội của bạn." : "Bạn không thuộc đội đang thi. Vui lòng chờ đến lượt đội của bạn."}
           </Alert>
         )}
-        {!isBlockedByTeam && showWaiting && <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>{showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}</Alert>}
+        {!shouldBlockInteraction && showWaiting && (
+          <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>
+            {showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}
+          </Alert>
+        )}
         {showRules && (
           <Card sx={{ mb: 2, borderRadius: 3, border: "1px solid rgba(26,140,142,0.15)" }}>
             <CardContent>
@@ -258,11 +255,12 @@ export const ContestantPage = () => {
             selectedOptionIds={selectedOptionIds}
             fillText={fillText}
             progress={progress}
-            locked={locked}
+            locked={locked || screen === "reveal"}
             isLoading={isLoading}
             isSubmitted={isSubmitted}
             canSubmit={canSubmit}
             waitingForCountdown={waitingForCountdown}
+            countdownValue={screen === "countdown" ? Math.ceil(remainingMs / 1000) : null}
             onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
             onToggleMultiple={(optionId, checked) => {
               if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);

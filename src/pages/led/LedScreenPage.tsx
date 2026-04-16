@@ -169,9 +169,7 @@ export const LedScreenPage = () => {
           zIndex: 1,
           minHeight: "100svh",
           px: { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
-          pr: (screen === "countdown" || screen === "question")
-            ? { xs: 1.5, sm: 2.5, md: 22, lg: 26 }
-            : { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
+          pr: { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
           pt: { xs: 9, sm: 10, md: 13, lg: 15 },
           pb: { xs: 12, sm: 14, md: 18, lg: 22 },
           display: "flex",
@@ -179,37 +177,6 @@ export const LedScreenPage = () => {
           gap: { xs: 1.5, sm: 2, md: 2.5 }
         }}
       >
-        {(screen === "countdown" || screen === "question") && (
-          <Box
-            sx={{
-              position: "fixed",
-              top: { xs: 12, sm: 16, md: 22, lg: 28 },
-              right: { xs: 12, sm: 18, md: 24, lg: 28 },
-              zIndex: 20,
-              textAlign: "right",
-              px: { xs: 1.25, md: 1.75 },
-              py: { xs: 1, md: 1.25 },
-              borderRadius: 3,
-              background: "rgba(255,255,255,0.72)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(26,140,142,0.24)",
-              boxShadow: "0 10px 28px rgba(23,50,77,0.14)",
-              pointerEvents: "none"
-            }}
-          >
-            <Typography
-              sx={{
-                fontWeight: 900,
-                color: "#17324d",
-                fontSize: { xs: "2.6rem", sm: "3.2rem", md: "4rem", lg: "4.8rem" },
-                lineHeight: 1
-              }}
-            >
-              {screen === "countdown" ? remainingSeconds : "—"}
-            </Typography>
-          </Box>
-        )}
-
         {(screen === "question" || screen === "countdown" || screen === "reveal") && (
           <Box sx={{ width: "100%", maxWidth: { xs: "100%", lg: 1536 }, mx: "auto", display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: { xs: 2, lg: 3 }, alignItems: "flex-start" }}>
             {/* Cột trái: Kết quả từng thí sinh */}
@@ -254,7 +221,7 @@ export const LedScreenPage = () => {
                           border: "1px solid rgba(111, 165, 207, 0.18)"
                         }}
                       >
-                        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: "flex-start" }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: "flex-start", minHeight: 44 }}>
                           <Box sx={{ minWidth: 0 }}>
                             <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", textAlign: "left" }}>
                               {row.contestantName}
@@ -265,17 +232,6 @@ export const LedScreenPage = () => {
                               </Typography>
                             )}
                           </Box>
-                          <Typography
-                            component="div"
-                            sx={{
-                              fontWeight: 700,
-                              color: row.hasSubmitted ? "#0F6B6D" : "#64748B",
-                              fontSize: { xs: "0.8rem", md: "0.9rem" },
-                              flexShrink: 0
-                            }}
-                          >
-                            {!row.hasSubmitted ? "Chưa làm" : "Đã nộp"}
-                          </Typography>
                         </Box>
                       </Box>
                     ))}
@@ -297,6 +253,34 @@ export const LedScreenPage = () => {
                     }}
                   >
                     <GlassCard sx={{ p: { xs: 1.75, sm: 2, md: 3 }, borderRadius: { xs: 3, md: 4 }, flex: 1, minWidth: 0 }}>
+                      {(screen === "countdown" || screen === "question") && (
+                        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
+                          <Box
+                            sx={{
+                              minWidth: { xs: 112, sm: 132, md: 168, lg: 192 },
+                              textAlign: "center",
+                              px: { xs: 1.25, md: 1.75 },
+                              py: { xs: 0.85, md: 1.25 },
+                              borderRadius: 3,
+                              background: "rgba(255,255,255,0.78)",
+                              backdropFilter: "blur(12px)",
+                              border: "1px solid rgba(26,140,142,0.24)",
+                              boxShadow: "0 10px 28px rgba(23,50,77,0.14)"
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontWeight: 900,
+                                color: "#17324d",
+                                fontSize: { xs: "3.1rem", sm: "3.7rem", md: "4.8rem", lg: "5.6rem" },
+                                lineHeight: 1
+                              }}
+                            >
+                              {screen === "countdown" ? remainingSeconds : "—"}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
                       {question.type === "fill_blank" ? (
                         <QuestionContentWithBlank
                           content={question.content}
@@ -636,12 +620,25 @@ export const LedScreenPage = () => {
           </Box>
         )}
 
-        {screen === "team_score" && teamScore && (
-          <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1080 }, mx: "auto", display: "flex", flexDirection: "column", gap: { xs: 1, md: 1.5 } }}>
-            {teamScore.teams.map((team) => (
+        {screen === "team_score" && (
+          <Box
+            sx={{
+              width: "100%",
+              maxWidth: { xs: "100%", md: 1080 },
+              mx: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: { xs: 1, md: 1.5 }
+            }}
+          >
+            {teamScore?.teams?.map((team) => (
               <GlassCard key={team.name} sx={{ p: { xs: 1.5, md: 2.2 }, borderRadius: { xs: 3, md: 4 } }}>
-                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" }, textAlign: "center" }}>
-                  {team.name.toLowerCase().startsWith('đội') ? team.name : `Đội ${team.name}`} - {team.totalScore} điểm
+                <Typography
+                  component="div"
+                  sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" }, textAlign: "center" }}
+                >
+                  {team.name.toLowerCase().startsWith("đội") ? team.name : `Đội ${team.name}`}
+                  {team.totalScore && team.totalScore > 0 ? ` - ${team.totalScore} điểm` : ""}
                 </Typography>
                 {team.contestants && team.contestants.length > 0 && (
                   <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
@@ -662,7 +659,7 @@ export const LedScreenPage = () => {
                           {contestant.name}
                         </Typography>
                         <Typography component="div" sx={{ fontWeight: 800, color: "#11416f" }}>
-                          {contestant.score} điểm
+                          {contestant.score && contestant.score > 0 ? `${contestant.score} điểm` : ""}
                         </Typography>
                       </Box>
                     ))}
@@ -673,15 +670,31 @@ export const LedScreenPage = () => {
           </Box>
         )}
 
-        {screen === "leaderboard" && leaderboard && (
-          <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1080 }, mx: "auto", display: "flex", flexDirection: "column", gap: { xs: 1, md: 1.5 } }}>
-            {leaderboard.rankings.map((item) => (
+        {screen === "leaderboard" && (
+          <Box
+            sx={{
+              width: "100%",
+              maxWidth: { xs: "100%", md: 1080 },
+              mx: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: { xs: 1, md: 1.5 }
+            }}
+          >
+            {leaderboard?.rankings?.map((item) => (
               <GlassCard
                 key={`${item.rank}-${item.name}`}
                 sx={{
                   p: { xs: 1.5, md: 2.2 },
                   borderRadius: { xs: 3, md: 4 },
-                  border: item.rank === 1 ? "2px solid #D4A741" : item.rank === 2 ? "2px solid #94A3B8" : item.rank === 3 ? "2px solid #B45309" : undefined,
+                  border:
+                    item.rank === 1
+                      ? "2px solid #D4A741"
+                      : item.rank === 2
+                        ? "2px solid #94A3B8"
+                        : item.rank === 3
+                          ? "2px solid #B45309"
+                          : undefined,
                   background: item.rank === 1 ? "linear-gradient(135deg, rgba(245,217,138,0.2), rgba(255,255,255,0.88))" : undefined
                 }}
               >
@@ -699,10 +712,13 @@ export const LedScreenPage = () => {
                       flexShrink: 0,
                       color: "#FFFFFF",
                       background:
-                        item.rank === 1 ? "linear-gradient(135deg, #D4A741, #F5D98A)" :
-                        item.rank === 2 ? "linear-gradient(135deg, #94A3B8, #CBD5E1)" :
-                        item.rank === 3 ? "linear-gradient(135deg, #B45309, #D97706)" :
-                        "linear-gradient(135deg, #1A8C8E, #0F6B6D)"
+                        item.rank === 1
+                          ? "linear-gradient(135deg, #D4A741, #F5D98A)"
+                          : item.rank === 2
+                            ? "linear-gradient(135deg, #94A3B8, #CBD5E1)"
+                            : item.rank === 3
+                              ? "linear-gradient(135deg, #B45309, #D97706)"
+                              : "linear-gradient(135deg, #1A8C8E, #0F6B6D)"
                     }}
                   >
                     {item.rank}
@@ -716,10 +732,11 @@ export const LedScreenPage = () => {
                         fontSize: { xs: "1rem", md: "1.25rem" }
                       }}
                     >
-                      {item.name} - {item.totalScore} điểm
+                      {item.name}
+                      {item.totalScore && item.totalScore > 0 ? ` - ${item.totalScore} điểm` : ""}
                     </Typography>
                     <Typography component="div" sx={{ mt: 0.25, color: "#4A7A8A", fontSize: { xs: "0.92rem", md: "1rem" } }}>
-                      {item.team ? (item.team.toLowerCase().startsWith('đội') ? item.team : `Đội ${item.team}`) : "Chưa có đội"}
+                      {item.team ? (item.team.toLowerCase().startsWith("đội") ? item.team : `Đội ${item.team}`) : "Chưa có đội"}
                     </Typography>
                   </Box>
                 </Box>

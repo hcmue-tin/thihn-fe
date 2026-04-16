@@ -196,7 +196,9 @@ export const ExamControlRoom = ({
                   "&.Mui-selected": { bgcolor: "rgba(26,140,142,0.06)" }
                 }}
               >
-                <ListItemText primary={q.content} />
+                <ListItemText
+                  primary={`Câu ${q.orderNum}: ${q.content}`}
+                />
               </ListItemButton>
             ))}
           </List>
@@ -235,6 +237,7 @@ export const ExamControlRoom = ({
           <LiveButtons
             screen={currentScreen}
             pendingAction={pendingAction}
+            activeTeamId={activeTeamId}
             selectedQuestionId={selectedQuestionId}
             selectedExamSetId={selectedExamSetId}
             onGoWaiting={onGoWaiting}

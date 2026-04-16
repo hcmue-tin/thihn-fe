@@ -115,8 +115,8 @@ export const AdminPage = () => {
   }, [adminToken, connectSocket]);
 
   useEffect(() => {
-    if (fullState?.activeTeamId !== undefined && fullState.activeTeamId !== null) {
-      setActiveTeamId(fullState.activeTeamId);
+    if (fullState?.activeTeamId !== undefined) {
+      setActiveTeamId(fullState.activeTeamId ?? null);
     }
   }, [fullState?.activeTeamId]);
 
@@ -457,6 +457,20 @@ export const AdminPage = () => {
                   label="Mật khẩu quản trị"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && adminPassword) {
+                      void handleAdminLogin();
+                    }
+                  }}
+                  slotProps={{
+                    htmlInput: {
+                      autoCapitalize: "none",
+                      autoCorrect: "off",
+                      spellCheck: false,
+                      inputMode: "text",
+                      style: { imeMode: "disabled" as never }
+                    }
+                  }}
                   fullWidth
                 />
                 <Button variant="contained" size="large" onClick={handleAdminLogin} disabled={!adminPassword} sx={{ mt: 2, fontWeight: 'bold', background: 'linear-gradient(135deg, #1A8C8E, #0F6B6D)', '&:hover': { background: 'linear-gradient(135deg, #0F6B6D, #0A5557)' } }}>
@@ -597,8 +611,12 @@ export const AdminPage = () => {
             setSelectedQuestionId(questionId);
             setSelectedQuestionIds((prev) => (prev.includes(questionId) ? prev : [...prev, questionId]));
           }}
-          onSelectTeam={setActiveTeamId}
-          onGoWaiting={() => withAck("Vào màn chờ", "admin:set-screen", { screen: "waiting" })}
+          onSelectTeam={(teamId) => {
+            setActiveTeamId(teamId);
+            if (!adminToken) return;
+            void emitWithAck("admin:set-active-team", { activeTeamId: teamId ?? null });
+          }}
+          onGoWaiting={() => withAck("Vào màn chờ", "admin:set-screen", { screen: "waiting", teamIds: activeTeamId != null ? [activeTeamId] : undefined })}
           onResetSession={async () => {
             const confirmed = window.confirm("Reset sẽ xóa trạng thái câu đang chạy và dừng countdown. Tiếp tục?");
             if (!confirmed) return;
@@ -606,12 +624,12 @@ export const AdminPage = () => {
             setSelectedQuestionId(null);
             setSelectedQuestionIds([]);
           }}
-          onShowQuestion={() => withAck("Hiển thị câu hỏi", "admin:show-question", { questionId: selectedQuestionId })}
-          onStartCountdown={() => withAck("Bắt đầu đếm ngược", "admin:start-countdown", { questionId: selectedQuestionId })}
+          onShowQuestion={() => withAck("Hiển thị câu hỏi", "admin:show-question", { questionId: selectedQuestionId, activeTeamId })}
+          onStartCountdown={() => withAck("Bắt đầu đếm ngược", "admin:start-countdown", { questionId: selectedQuestionId, activeTeamId })}
           onStopShowAnswer={stopAndAutoNext}
-          onRetakeQuestion={() => withAck("Thi lại câu đã chọn", "admin:retake-question", { questionId: selectedQuestionId })}
-          onShowTeamScore={() => withAck("Hiển thị điểm đội", "admin:show-team-score", { examSetId: selectedExamSetId, teamIds: activeTeamId != null ? [activeTeamId] : undefined })}
-          onShowLeaderboard={() => withAck("Hiển thị bảng xếp hạng", "admin:show-leaderboard", { teamIds: activeTeamId != null ? [activeTeamId] : undefined })}
+          onRetakeQuestion={() => withAck("Thi lại câu đã chọn", "admin:retake-question", { questionId: selectedQuestionId, activeTeamId })}
+          onShowTeamScore={() => withAck("Hiển thị điểm đội", "admin:show-team-score", { examSetId: selectedExamSetId, teamIds: activeTeamId != null ? [activeTeamId] : undefined, activeTeamId })}
+          onShowLeaderboard={() => withAck("Hiển thị bảng xếp hạng", "admin:show-leaderboard", { activeTeamId })}
           onShowRules={() => withAck("Hiển thị thể lệ", "admin:set-screen", { screen: "rules" })}
           onShowTeamList={() => withAck("Hiển thị đội thi", "admin:set-screen", { screen: "team_list", teamIds: activeTeamId != null ? [activeTeamId] : undefined })}
           onRevealSolutionOnLed={revealSolutionOnLed}

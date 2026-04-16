@@ -90,9 +90,9 @@ export const ContestantDataGrid = ({
 
   const downloadExcelTemplate = (): void => {
     const rows = [
-      ["Mã", "Tên", "Đơn vị", "Đội"],
-      ["TS001", "Nguyễn Văn A", "Khoa CNTT", "Đội 1"],
-      ["TS002", "Trần Thị B", "Khoa Toán", "Đội 2"]
+      ["Mã", "Tên", "Mật khẩu", "Đơn vị", "Đội"],
+      ["TS001", "Nguyễn Văn A", "MatKhauA123", "Khoa CNTT", "Đội 1"],
+      ["TS002", "Trần Thị B", "MatKhauB123", "Khoa Toán", "Đội 2"]
     ];
     const sheet = XLSX.utils.aoa_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
@@ -230,6 +230,15 @@ export const ContestantDataGrid = ({
             type="password"
             value={contestantPassword}
             onChange={(e) => onContestantPasswordChange(e.target.value)}
+            slotProps={{
+              htmlInput: {
+                autoCapitalize: "none",
+                autoCorrect: "off",
+                spellCheck: false,
+                inputMode: "text",
+                style: { imeMode: "disabled" as never }
+              }
+            }}
           />
         </DialogContent>
         <DialogActions>
