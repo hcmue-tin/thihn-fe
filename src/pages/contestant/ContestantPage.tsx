@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Snackbar, Stack, TextField, Typography } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { api, resolveMediaUrl } from "../../api";
@@ -29,6 +29,7 @@ export const ContestantPage = () => {
     backgroundUrl,
     contestantBackgroundUrl,
     questionShowSeq,
+    ledSolutionVisible,
     fullState,
     connectSocket,
     disconnectSocket,
@@ -49,6 +50,7 @@ export const ContestantPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [locked, setLocked] = useState(false);
   const [remainingMs, setRemainingMs] = useState(0);
+  const autoSubmitTriggeredRef = useRef(false);
   const passwordInputProps = {
     autoCapitalize: "none" as const,
     autoCorrect: "off" as const,
@@ -71,6 +73,7 @@ export const ContestantPage = () => {
     setFillText("");
     setIsSubmitted(false);
     setLocked(false);
+    autoSubmitTriggeredRef.current = false;
   }, [question?.id, questionShowSeq]);
 
   useEffect(() => {
@@ -130,6 +133,28 @@ export const ContestantPage = () => {
     setLocked(true);
   };
 
+  const hasPendingSelection = selectedOptionIds.length > 0 || fillText.trim().length > 0;
+
+  useEffect(() => {
+    if (
+      screen !== "countdown" ||
+      !question ||
+      !countdownEndsAt ||
+      isSubmitted ||
+      locked ||
+      isLoading ||
+      !hasPendingSelection ||
+      autoSubmitTriggeredRef.current
+    ) {
+      return;
+    }
+    if (remainingMs > 250) {
+      return;
+    }
+    autoSubmitTriggeredRef.current = true;
+    void submitAnswer();
+  }, [countdownEndsAt, hasPendingSelection, isLoading, isSubmitted, locked, question, remainingMs, screen]);
+
   if (!token || !identity) {
     return (
       <ThemeProvider theme={lightTheme}>
@@ -175,7 +200,7 @@ export const ContestantPage = () => {
   const shouldBlockInteraction = isTeamNotSelected || isBlockedByTeam;
 
   const showQuestion = !shouldBlockInteraction && isDuringQuestionFlow && question;
-  const showResult = !shouldBlockInteraction && screen === "reveal" && latestAnswerResult;
+  const showResult = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && latestAnswerResult;
   const waitingForCountdown = screen === "question";
   const canSubmit = !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
   const contestantBg =
@@ -206,7 +231,7 @@ export const ContestantPage = () => {
           backgroundImage: contestantBackgroundImage
             ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url("${contestantBackgroundImage}")`
             : "none",
-          backgroundSize: "cover",
+          backgroundSize: "100% 100%",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat"
         }}
@@ -262,26 +287,67 @@ export const ContestantPage = () => {
         )}
 
         {showQuestion && question && (
-          <QuestionForm
-            question={question}
-            options={options}
-            selectedOptionIds={selectedOptionIds}
-            fillText={fillText}
-            progress={progress}
-            locked={locked || screen === "reveal"}
-            isLoading={isLoading}
-            isSubmitted={isSubmitted}
-            canSubmit={canSubmit}
-            waitingForCountdown={waitingForCountdown}
-            countdownValue={screen === "countdown" ? Math.ceil(remainingMs / 1000) : null}
-            onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
-            onToggleMultiple={(optionId, checked) => {
-              if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
-              else setSelectedOptionIds((prev) => prev.filter((id) => id !== optionId));
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1.75fr) minmax(180px, 0.55fr)" },
+              gap: { xs: 1.5, sm: 2, md: 2.5 },
+              alignItems: "stretch"
             }}
-            onFillTextChange={setFillText}
-            onSubmit={submitAnswer}
-          />
+          >
+            <Box
+              sx={{
+                p: { xs: 1.25, sm: 1.75, md: 2.2 },
+                borderRadius: 3,
+                backgroundColor: "rgba(255,255,255,0.9)",
+                border: "1px solid rgba(26,140,142,0.16)",
+                boxShadow: "0 10px 28px rgba(23,50,77,0.08)"
+              }}
+            >
+              <QuestionForm
+                question={question}
+                options={options}
+                selectedOptionIds={selectedOptionIds}
+                fillText={fillText}
+                progress={progress}
+                locked={locked || screen === "reveal"}
+                isLoading={isLoading}
+                isSubmitted={isSubmitted}
+                canSubmit={canSubmit}
+                waitingForCountdown={waitingForCountdown}
+                countdownValue={null}
+                onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
+                onToggleMultiple={(optionId, checked) => {
+                  if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
+                  else setSelectedOptionIds((prev) => prev.filter((id) => id !== optionId));
+                }}
+                onFillTextChange={setFillText}
+                onSubmit={submitAnswer}
+              />
+            </Box>
+            <Box
+              sx={{
+                p: { xs: 1.5, sm: 1.75, md: 2.2 },
+                borderRadius: 3,
+                backgroundColor: "rgba(255,255,255,0.9)",
+                border: "1px solid rgba(26,140,142,0.16)",
+                boxShadow: "0 10px 28px rgba(23,50,77,0.08)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                minHeight: { xs: 132, sm: 156, lg: "100%" }
+              }}
+            >
+              <Typography sx={{ fontWeight: 900, color: "#8A5A00", mb: 0.75, fontSize: { xs: "0.95rem", sm: "1rem", md: "1.05rem" } }}>
+                Số đếm
+              </Typography>
+              <Typography sx={{ fontWeight: 900, color: "#17324d", lineHeight: 1, fontSize: { xs: "2.5rem", sm: "3.1rem", md: "4rem" } }}>
+                {screen === "countdown" ? Math.ceil(remainingMs / 1000) : "—"}
+              </Typography>
+            </Box>
+          </Box>
         )}
 
         {showResult && latestAnswerResult && (

@@ -113,7 +113,7 @@ export const ExamManagementSection = ({
                     "&:hover": { bgcolor: "rgba(26,140,142,0.05)" }
                   }}
                 >
-                  <Typography sx={{ fontWeight: 700, color: "#1A3A4A", mb: 1 }}>{q.content}</Typography>
+                  <Typography sx={{ fontWeight: 700, color: "#1A3A4A", mb: 1 }}>{`Câu ${q.orderNum}: ${q.content}`}</Typography>
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
                     <Stack direction="row" spacing={1}>
                       <Chip size="small" label={q.type} sx={{ fontWeight: 700 }} />
