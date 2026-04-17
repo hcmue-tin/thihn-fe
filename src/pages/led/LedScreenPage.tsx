@@ -1,6 +1,6 @@
 import { Box, Fade, Paper, Typography } from "@mui/material";
 import { keyframes, styled } from "@mui/material/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { resolveMediaUrl } from "../../api";
 import { QuestionContentWithBlank } from "../../components/contestant/QuestionContentWithBlank";
 import { parseMatchingContent } from "../../components/admin/matchingEditorUtils";
@@ -45,8 +45,6 @@ const OptionCard = styled(GlassCard, {
 }));
 
 export const LedScreenPage = () => {
-  const DESIGN_WIDTH = 1920;
-  const DESIGN_HEIGHT = 1080;
   const {
     socket,
     screen,
@@ -142,18 +140,6 @@ export const LedScreenPage = () => {
 
   const ledBg = ledBackgroundUrl && ledBackgroundUrl.trim().length > 0 ? ledBackgroundUrl : backgroundUrl;
   const ledBackgroundImage = ledBg && ledBg.trim().length > 0 ? resolveMediaUrl(ledBg) : "";
-  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
-  useEffect(() => {
-    const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  const contentScale = useMemo(() => {
-    const sw = viewport.width / DESIGN_WIDTH;
-    const sh = viewport.height / DESIGN_HEIGHT;
-    return Math.max(0.55, Math.min(sw, sh));
-  }, [viewport.height, viewport.width]);
-
   return (
     <ScreenRoot>
       {/* Nền cố định (fixed) toàn màn hình */}
@@ -194,33 +180,15 @@ export const LedScreenPage = () => {
           position: "relative",
           zIndex: 1,
           minHeight: "100svh",
-          width: "100%",
-          overflow: "hidden"
+          px: { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
+          pr: { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
+          pt: { xs: "14vh", sm: "15vh", md: "16vh", lg: "17vh" },
+          pb: { xs: 12, sm: 14, md: 18, lg: 22 },
+          display: "flex",
+          flexDirection: "column",
+          gap: { xs: 1.5, sm: 2, md: 2.5 }
         }}
       >
-        <Box
-          sx={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            width: `${DESIGN_WIDTH}px`,
-            height: `${DESIGN_HEIGHT}px`,
-            transform: `translateX(-50%) scale(${contentScale})`,
-            transformOrigin: "top center"
-          }}
-        >
-          <Box
-            sx={{
-              width: "100%",
-              height: "100%",
-              px: 24 / 8,
-              pt: "17vh",
-              pb: 22 / 8,
-              display: "flex",
-              flexDirection: "column",
-              gap: 2.5 / 8
-            }}
-          >
         {(screen === "question" || screen === "countdown" || screen === "reveal") && (
           <Box
             sx={{
@@ -776,8 +744,6 @@ export const LedScreenPage = () => {
             ))}
           </Box>
         )}
-          </Box>
-        </Box>
       </Box>
     </ScreenRoot>
   );
