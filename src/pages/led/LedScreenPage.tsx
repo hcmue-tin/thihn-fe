@@ -153,11 +153,11 @@ export const LedScreenPage = () => {
           zIndex: -2,
           backgroundColor: "#EAF3F8",
           backgroundImage: ledBackgroundImage
-            ? `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%), url("${ledBackgroundImage}")`
+            ? `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%), url("${ledBackgroundImage}"), url("${ledBackgroundImage}")`
             : "none",
-          backgroundSize: "contain",
-          backgroundPosition: "center top",
-          backgroundRepeat: "no-repeat"
+          backgroundSize: "100% 100%, cover, contain",
+          backgroundPosition: "center, center, center top",
+          backgroundRepeat: "no-repeat, no-repeat, no-repeat"
         }}
       />
       {/* Overlay gradient tinh chỉnh */}

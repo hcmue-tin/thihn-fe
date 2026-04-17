@@ -228,11 +228,11 @@ export const ContestantPage = () => {
           zIndex: -1,
           backgroundColor: "#EAF3F8",
           backgroundImage: contestantBackgroundImage
-            ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url("${contestantBackgroundImage}")`
+            ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url("${contestantBackgroundImage}"), url("${contestantBackgroundImage}")`
             : "none",
-          backgroundSize: "contain",
-          backgroundPosition: "center top",
-          backgroundRepeat: "no-repeat"
+          backgroundSize: "100% 100%, cover, contain",
+          backgroundPosition: "center, center, center top",
+          backgroundRepeat: "no-repeat, no-repeat, no-repeat"
         }}
       />
       <Box
