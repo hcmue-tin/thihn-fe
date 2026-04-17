@@ -18,6 +18,8 @@ type ContestantIdentity = {
 };
 
 export const ContestantPage = () => {
+  const DESIGN_WIDTH = 1920;
+  const DESIGN_HEIGHT = 1080;
   const {
     screen,
     question,
@@ -207,6 +209,17 @@ export const ContestantPage = () => {
     contestantBackgroundUrl && contestantBackgroundUrl.trim().length > 0 ? contestantBackgroundUrl : backgroundUrl;
   const contestantBackgroundImage =
     contestantBg && contestantBg.trim().length > 0 ? resolveMediaUrl(contestantBg) : null;
+  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
+  useEffect(() => {
+    const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const contentScale = useMemo(() => {
+    const sw = viewport.width / DESIGN_WIDTH;
+    const sh = viewport.height / DESIGN_HEIGHT;
+    return Math.max(0.6, Math.min(sw, sh));
+  }, [viewport.height, viewport.width]);
 
   const handleLogout = (): void => {
     disconnectSocket();
@@ -239,11 +252,24 @@ export const ContestantPage = () => {
       <Box
         sx={{
           minHeight: "100vh",
-          p: { xs: 1, sm: 2 },
-          pt: { xs: 14, sm: 18, md: 22 }
+          width: "100%",
+          overflow: "hidden",
+          position: "relative"
         }}
       >
-        <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1160, lg: 1320 }, mx: "auto", position: "relative", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 2, sm: 3, md: 3.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: "50%",
+            width: `${DESIGN_WIDTH}px`,
+            height: `${DESIGN_HEIGHT}px`,
+            transform: `translateX(-50%) scale(${contentScale})`,
+            transformOrigin: "top center",
+            px: 2
+          }}
+        >
+        <Box sx={{ width: "100%", maxWidth: 1320, mx: "auto", position: "relative", mt: "17vh", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 2, sm: 3, md: 3.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", justifyContent: "space-between", gap: 1, mb: 0.5 }}>
             <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", flex: 1, fontSize: { xs: "1rem", sm: "1.25rem" } }}>
               {identity.name} ({identity.code})
@@ -357,6 +383,7 @@ export const ContestantPage = () => {
         )}
 
         <Snackbar open={toastOpen && !!error} autoHideDuration={3500} onClose={() => setToastOpen(false)} message={error} />
+        </Box>
         </Box>
       </Box>
     </ThemeProvider>
