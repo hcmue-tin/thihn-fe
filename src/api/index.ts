@@ -21,6 +21,18 @@ export const resolveMediaUrl = (url?: string | null): string => {
   if (!url) return "";
   const normalizedInput = url.trim().replace(/\\/g, "/");
   if (/^https?:\/\//i.test(normalizedInput)) {
+    // Backend sometimes returns absolute URLs like http://localhost:5126/... which will break on other devices
+    // (LED screen, contestants) because "localhost" points to the current device.
+    try {
+      const parsed = new URL(normalizedInput);
+      const hostname = parsed.hostname.toLowerCase();
+      if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+        const backendBase = getBackendBaseUrl();
+        return new URL(`${parsed.pathname}${parsed.search}${parsed.hash}`, `${backendBase}/`).toString();
+      }
+    } catch {
+      // Fall through to return the original string below.
+    }
     return normalizedInput;
   }
   const normalizedPath = normalizedInput.startsWith("/") ? normalizedInput : `/${normalizedInput}`;

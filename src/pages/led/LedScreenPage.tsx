@@ -20,11 +20,7 @@ const ScreenRoot = styled(Box)({
   position: "relative",
   overflow: "hidden",
   color: "#17324d",
-  marginLeft: "calc(50% - 50vw)",
-  backgroundColor: "#EAF3F8",
-  backgroundSize: "cover",
-  backgroundPosition: "center top",
-  backgroundRepeat: "no-repeat"
+  marginLeft: "calc(50% - 50vw)"
 });
 
 const GlassCard = styled(Paper)({
@@ -142,21 +138,38 @@ export const LedScreenPage = () => {
       .map((item, idx) => ({ ...item, color: palette[idx % palette.length] }));
   }, [matchingColumns.left, matchingColumns.right, question?.type, reveal]);
 
-  const ledBg = ledBackgroundUrl ?? backgroundUrl;
-  const ledBackgroundImage = ledBg ? resolveMediaUrl(ledBg) : "";
+  const ledBg = ledBackgroundUrl && ledBackgroundUrl.trim().length > 0 ? ledBackgroundUrl : backgroundUrl;
+  const ledBackgroundImage = ledBg && ledBg.trim().length > 0 ? resolveMediaUrl(ledBg) : "";
 
   return (
-    <ScreenRoot
-      sx={{
-        backgroundImage: ledBackgroundImage
-          ? `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%), url(${ledBackgroundImage})`
-          : "none"
-      }}
-    >
+    <ScreenRoot>
+      {/* Nền cố định (fixed) toàn màn hình */}
       <Box
         sx={{
-          position: "absolute",
-          inset: 0,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: -2,
+          backgroundColor: "#EAF3F8",
+          backgroundImage: ledBackgroundImage
+            ? `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%), url("${ledBackgroundImage}")`
+            : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      />
+      {/* Overlay gradient tinh chỉnh */}
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: -1,
           background:
             "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 38%, rgba(255,255,255,0.06) 100%)",
           pointerEvents: "none"

@@ -178,8 +178,10 @@ export const ContestantPage = () => {
   const showResult = !shouldBlockInteraction && screen === "reveal" && latestAnswerResult;
   const waitingForCountdown = screen === "question";
   const canSubmit = !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
-  const contestantBg = contestantBackgroundUrl ?? backgroundUrl;
-  const contestantBackgroundImage = contestantBg ? resolveMediaUrl(contestantBg) : null;
+  const contestantBg =
+    contestantBackgroundUrl && contestantBackgroundUrl.trim().length > 0 ? contestantBackgroundUrl : backgroundUrl;
+  const contestantBackgroundImage =
+    contestantBg && contestantBg.trim().length > 0 ? resolveMediaUrl(contestantBg) : null;
 
   const handleLogout = (): void => {
     disconnectSocket();
@@ -191,18 +193,29 @@ export const ContestantPage = () => {
   };
   return (
     <ThemeProvider theme={lightTheme}>
+      {/* Nền cố định (fixed) toàn màn hình */}
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: -1,
+          backgroundColor: "#EAF3F8",
+          backgroundImage: contestantBackgroundImage
+            ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url("${contestantBackgroundImage}")`
+            : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      />
       <Box
         sx={{
           minHeight: "100vh",
           p: { xs: 1, sm: 2 },
-          pt: { xs: 12, sm: 16, md: 20 },
-          backgroundColor: "#EAF3F8",
-          backgroundImage: contestantBackgroundImage
-            ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url(${contestantBackgroundImage})`
-            : "none",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed"
+          pt: { xs: 12, sm: 16, md: 20 }
         }}
       >
         <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1160, lg: 1320 }, mx: "auto", position: "relative", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 2, sm: 3, md: 3.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
