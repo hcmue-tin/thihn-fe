@@ -231,8 +231,8 @@ export const ContestantPage = () => {
           backgroundImage: contestantBackgroundImage
             ? `linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url("${contestantBackgroundImage}")`
             : "none",
-          backgroundSize: "100% 100%",
-          backgroundPosition: "center",
+          backgroundSize: "contain",
+          backgroundPosition: "center top",
           backgroundRepeat: "no-repeat"
         }}
       />
@@ -240,7 +240,7 @@ export const ContestantPage = () => {
         sx={{
           minHeight: "100vh",
           p: { xs: 1, sm: 2 },
-          pt: { xs: 12, sm: 16, md: 20 }
+          pt: { xs: 14, sm: 18, md: 22 }
         }}
       >
         <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 1160, lg: 1320 }, mx: "auto", position: "relative", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 2, sm: 3, md: 3.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>

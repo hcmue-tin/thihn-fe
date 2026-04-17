@@ -156,8 +156,8 @@ export const LedScreenPage = () => {
           backgroundImage: ledBackgroundImage
             ? `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%), url("${ledBackgroundImage}")`
             : "none",
-          backgroundSize: "100% 100%",
-          backgroundPosition: "center",
+          backgroundSize: "contain",
+          backgroundPosition: "center top",
           backgroundRepeat: "no-repeat"
         }}
       />
@@ -183,7 +183,7 @@ export const LedScreenPage = () => {
           minHeight: "100svh",
           px: { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
           pr: { xs: 1.5, sm: 2.5, md: 5, lg: 6 },
-          pt: { xs: 9, sm: 10, md: 13, lg: 15 },
+          pt: { xs: 12, sm: 14, md: 17, lg: 19 },
           pb: { xs: 12, sm: 14, md: 18, lg: 22 },
           display: "flex",
           flexDirection: "column",
