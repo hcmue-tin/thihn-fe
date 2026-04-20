@@ -341,11 +341,11 @@ export const ContestantPage = () => {
           position: "relative",
           zIndex: 1,
           px: { xs: 2, sm: 3, md: 4 },
-          pb: { xs: 4, sm: 6, md: 8 },
-          pt: { xs: "16vh", sm: "17vh", md: "18vh", lg: "19vh" }
+          pb: { xs: 3, sm: 4, md: 5 },
+          pt: { xs: "12vh", sm: "13vh", md: "14vh", lg: "15vh" }
         }}
       >
-        <Box sx={{ width: "100%", maxWidth: DESKTOP_FRAME_MAX_WIDTH, mx: "auto", position: "relative", overflow: "hidden", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 2, sm: 3, md: 4 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
+        <Box sx={{ width: "100%", maxWidth: DESKTOP_FRAME_MAX_WIDTH, mx: "auto", position: "relative", overflow: "hidden", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 1.5, sm: 2, md: 2.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", justifyContent: "space-between", gap: 1, mb: 0.5 }}>
             <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", flex: 1, minWidth: 0, fontSize: { xs: "1rem", sm: "1.25rem" }, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: { xs: "normal", sm: "nowrap" }, overflowWrap: "anywhere" }}>
               {identity.name} ({identity.code})
@@ -393,14 +393,14 @@ export const ContestantPage = () => {
             sx={{
               display: "grid",
               gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) 220px" },
-              gap: { xs: 2, md: 3 },
+              gap: { xs: 1.5, md: 2 },
               alignItems: "stretch"
             }}
           >
             <Box
               sx={{
                 minWidth: 0,
-                p: { xs: 1.25, sm: 1.75, md: 2.2 },
+                p: { xs: 1, sm: 1.5, md: 1.8 },
                 borderRadius: 3,
                 backgroundColor: "rgba(255,255,255,0.9)",
                 border: "1px solid rgba(26,140,142,0.16)",
@@ -434,8 +434,7 @@ export const ContestantPage = () => {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                textAlign: "center",
-                minHeight: { xs: 132, sm: 156, lg: "100%" }
+                textAlign: "center"
               }}
             >
               <Box

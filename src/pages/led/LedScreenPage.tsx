@@ -238,11 +238,11 @@ export const LedScreenPage = () => {
           zIndex: 1,
           minHeight: "100svh",
           px: { xs: 2, sm: 3, md: 4 },
-          pt: { xs: "16vh", sm: "17vh", md: "18vh", lg: "19vh" },
-          pb: { xs: 8, sm: 12, md: 16, lg: 20 },
+          pt: { xs: "12vh", sm: "13vh", md: "14vh", lg: "15vh" },
+          pb: { xs: 4, sm: 6, md: 8, lg: 10 },
           display: "flex",
           flexDirection: "column",
-          gap: { xs: 2, md: 3 }
+          gap: { xs: 1.5, md: 2 }
         }}
       >
         {(screen === "question" || screen === "countdown" || screen === "reveal") && (
@@ -254,17 +254,17 @@ export const LedScreenPage = () => {
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                lg: "280px minmax(0, 1fr) 220px"
+                lg: "300px minmax(0, 1fr) 220px"
               },
-              gap: { xs: 2, md: 3 },
+              gap: { xs: 1.5, md: 2.5 },
               alignItems: "stretch"
             }}
           >
-            <GlassCard sx={{ p: { xs: 1.5, md: 2.2 }, borderRadius: { xs: 3, md: 4 }, minHeight: { lg: "70vh" } }}>
-              <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "0.95rem", md: "1.08rem" } }}>
+            <GlassCard sx={{ p: { xs: 1.2, md: 1.8 }, borderRadius: { xs: 3, md: 4 }, minHeight: { lg: "50vh" } }}>
+              <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1rem", md: "1.15rem" } }}>
                 Kết quả thí sinh
               </Typography>
-              <Box sx={{ mt: 1.75, display: "grid", gap: 1 }}>
+              <Box sx={{ mt: 1.5, display: "grid", gap: 0.8 }}>
                 {screen === "reveal" && answerResults ? (
                   answerResults.results.map((row) => (
                     <Box
@@ -273,8 +273,9 @@ export const LedScreenPage = () => {
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        gap: 1.25,
-                        p: 1.25,
+                        gap: 1,
+                        px: 1.5,
+                        py: 1.2,
                         borderRadius: 2.5,
                         background: "rgba(255,255,255,0.56)",
                         border: "1px solid rgba(111, 165, 207, 0.18)"
@@ -287,7 +288,7 @@ export const LedScreenPage = () => {
                           color: "#17324d",
                           textAlign: "left",
                           minWidth: 0,
-                          fontSize: { xs: "0.88rem", md: "0.95rem" },
+                          fontSize: { xs: "0.95rem", md: "1.05rem" },
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap"
@@ -300,7 +301,7 @@ export const LedScreenPage = () => {
                         sx={{
                           fontWeight: 800,
                           color: "#334155",
-                          fontSize: { xs: "0.85rem", md: "0.9rem" },
+                          fontSize: { xs: "0.9rem", md: "1rem" },
                           whiteSpace: "nowrap",
                           flexShrink: 0,
                           maxWidth: "55%",
@@ -319,10 +320,10 @@ export const LedScreenPage = () => {
             </GlassCard>
 
             {/* Cột giữa: Câu hỏi và đáp án trong cùng 1 cụm */}
-            <Box sx={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", gap: { xs: 1.5, md: 2 } }}>
+            <Box sx={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", gap: { xs: 1.2, md: 1.8 } }}>
               {question && (
                 <Fade in timeout={450}>
-                  <GlassCard sx={{ p: { xs: 1.5, sm: 1.8, md: 2.5 }, borderRadius: { xs: 3, md: 4 }, minWidth: 0, minHeight: { lg: "70vh" } }}>
+                  <GlassCard sx={{ p: { xs: 1.2, sm: 1.5, md: 2 }, borderRadius: { xs: 3, md: 4 }, minWidth: 0, minHeight: { lg: "50vh" } }}>
                       {question.type === "fill_blank" ? (
                         <QuestionContentWithBlank
                           content={question.content}
@@ -418,11 +419,11 @@ export const LedScreenPage = () => {
                           src={resolveMediaUrl(question.imageUrl)}
                           alt="Hình minh họa câu hỏi"
                           sx={{
-                            mt: 2.5,
+                            mt: 2,
                             display: "block",
                             mx: "auto",
                             maxWidth: "100%",
-                            maxHeight: 400,
+                            maxHeight: 320,
                             borderRadius: 3,
                             objectFit: "contain",
                             boxShadow: "0 18px 36px rgba(15, 23, 42, 0.16)"
@@ -439,7 +440,7 @@ export const LedScreenPage = () => {
                           key={`${question.id}-${question.audioUrl}`}
                           controls
                           crossOrigin="anonymous"
-                          style={{ marginTop: 20, width: "100%" }}
+                          style={{ marginTop: 16, width: "100%" }}
                         >
                           <source src={resolveMediaUrl(question.audioUrl)} />
                         </audio>
@@ -447,11 +448,11 @@ export const LedScreenPage = () => {
                     {options.length > 0 && (
                       <Box
                         sx={{
-                          mt: 2,
+                          mt: 1.8,
                           minWidth: 0,
                           display: "grid",
                           gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
-                          gap: { xs: 1, sm: 1.2, md: 1.8 }
+                          gap: { xs: 1, sm: 1.2, md: 1.5 }
                         }}
                       >
                         {options.map((opt) => (
@@ -460,7 +461,7 @@ export const LedScreenPage = () => {
                             highlighted={
                               screen === "reveal" && ledSolutionVisible && !!reveal?.correctOptionIds.includes(opt.id)
                             }
-                            sx={{ p: { xs: 1.4, sm: 1.7, md: 2.5 }, borderRadius: { xs: 3, md: 4 }, height: "100%" }}
+                            sx={{ p: { xs: 1.2, sm: 1.4, md: 1.8 }, borderRadius: { xs: 3, md: 4 }, height: "100%" }}
                           >
                             <Typography
                               component="div"
@@ -607,25 +608,26 @@ export const LedScreenPage = () => {
 
             <Box
               sx={{
-                minHeight: { lg: "70vh" },
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "center",
+                justifyContent: "flex-start",
                 alignItems: "center",
-                textAlign: "center"
+                textAlign: "center",
+                pt: { lg: 5 }
               }}
             >
               <Box
                 sx={{
-                  width: { xs: 124, md: 156, lg: 176 },
-                  height: { xs: 124, md: 156, lg: 176 },
+                  width: { xs: 124, md: 156, lg: 210 },
+                  height: { xs: 124, md: 156, lg: 210 },
                   borderRadius: "50%",
                   border: "2px solid rgba(15,107,109,0.28)",
                   background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 16px 34px rgba(15,107,109,0.14)"
+                  boxShadow: "0 16px 34px rgba(15,107,109,0.14)",
+                  transform: { lg: "translateX(150px)" }
                 }}
               >
                 <Typography
@@ -633,7 +635,7 @@ export const LedScreenPage = () => {
                   sx={{
                     fontWeight: 900,
                     color: "#17324d",
-                    fontSize: { xs: "2.2rem", md: "3rem", lg: "3.5rem" },
+                    fontSize: { xs: "2.2rem", md: "3rem", lg: "4.2rem" },
                     lineHeight: 1
                   }}
                 >
