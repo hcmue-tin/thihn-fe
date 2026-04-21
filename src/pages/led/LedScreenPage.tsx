@@ -721,7 +721,7 @@ export const LedScreenPage = () => {
                   sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" }, textAlign: "center" }}
                 >
                   {team.name.toLowerCase().startsWith("đội") ? team.name : `Đội ${team.name}`}
-                  {team.totalScore && team.totalScore > 0 ? ` - ${team.totalScore} điểm` : ""}
+                  {` - ${team.totalScore ?? 0} điểm`}
                 </Typography>
                 {team.contestants && team.contestants.length > 0 && (
                   <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
@@ -742,7 +742,7 @@ export const LedScreenPage = () => {
                           {contestant.name}
                         </Typography>
                         <Typography component="div" sx={{ fontWeight: 800, color: "#11416f" }}>
-                          {contestant.score && contestant.score > 0 ? `${contestant.score} điểm` : ""}
+                          {`${contestant.score ?? 0} điểm`}
                         </Typography>
                       </Box>
                     ))}
@@ -806,18 +806,35 @@ export const LedScreenPage = () => {
                   >
                     {item.rank}
                   </Box>
-                  <Box>
-                    <Typography
-                      component="div"
-                      sx={{
-                        fontWeight: 800,
-                        color: "#1A3A4A",
-                        fontSize: { xs: "1rem", md: "1.25rem" }
-                      }}
-                    >
-                      {item.name}
-                      {item.totalScore && item.totalScore > 0 ? ` - ${item.totalScore} điểm` : ""}
-                    </Typography>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
+                      <Typography
+                        component="div"
+                        sx={{
+                          fontWeight: 800,
+                          color: "#1A3A4A",
+                          fontSize: { xs: "1rem", md: "1.25rem" },
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
+                        }}
+                      >
+                        {item.name}
+                      </Typography>
+                      <Typography
+                        component="div"
+                        sx={{
+                          fontWeight: 800,
+                          color: "#11416f",
+                          fontSize: { xs: "0.95rem", md: "1.1rem" },
+                          whiteSpace: "nowrap",
+                          flexShrink: 0
+                        }}
+                      >
+                        {`${item.totalScore ?? 0} điểm`}
+                      </Typography>
+                    </Box>
                     <Typography component="div" sx={{ mt: 0.25, color: "#4A7A8A", fontSize: { xs: "0.92rem", md: "1rem" } }}>
                       {item.team ? (item.team.toLowerCase().startsWith("đội") ? item.team : `Đội ${item.team}`) : "Chưa có đội"}
                     </Typography>

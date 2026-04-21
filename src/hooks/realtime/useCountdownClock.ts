@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 
 export const useCountdownClock = (countdownEndsAt: number | null, countdownSeconds: number) => {
   const [remainingMs, setRemainingMs] = useState(0);
+  const [countdownStartedAt, setCountdownStartedAt] = useState<number | null>(null);
 
   useEffect(() => {
     if (!countdownEndsAt) {
       setRemainingMs(0);
+      setCountdownStartedAt(null);
       return;
     }
 
+    setCountdownStartedAt(Date.now());
     let raf = 0;
     const render = () => {
       setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
@@ -19,7 +22,12 @@ export const useCountdownClock = (countdownEndsAt: number | null, countdownSecon
     return () => cancelAnimationFrame(raf);
   }, [countdownEndsAt]);
 
-  const remainingSeconds = Math.ceil(remainingMs / 1000);
+  const shouldKeepInitialSecond =
+    countdownEndsAt != null &&
+    countdownSeconds > 0 &&
+    countdownStartedAt != null &&
+    Date.now() - countdownStartedAt < 1000;
+  const remainingSeconds = shouldKeepInitialSecond ? countdownSeconds : Math.ceil(remainingMs / 1000);
   const progress = useMemo(() => {
     if (!countdownSeconds) return 0;
     const pct = (remainingMs / (countdownSeconds * 1000)) * 100;

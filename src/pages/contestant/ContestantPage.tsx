@@ -54,6 +54,7 @@ export const ContestantPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [locked, setLocked] = useState(false);
   const [remainingMs, setRemainingMs] = useState(0);
+  const [countdownStartedAt, setCountdownStartedAt] = useState<number | null>(null);
   const [contestantBackgroundFallback, setContestantBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const autoSubmitTriggeredRef = useRef(false);
@@ -114,8 +115,10 @@ export const ContestantPage = () => {
   useEffect(() => {
     if (!countdownEndsAt) {
       setRemainingMs(0);
+      setCountdownStartedAt(null);
       return;
     }
+    setCountdownStartedAt(Date.now());
     let raf = 0;
     const render = () => {
       setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
@@ -451,7 +454,13 @@ export const ContestantPage = () => {
                 }}
               >
                 <Typography sx={{ fontWeight: 900, color: "#17324d", lineHeight: 1, fontSize: { xs: "2.2rem", sm: "2.8rem", md: "3.4rem" } }}>
-                  {screen === "countdown" ? Math.ceil(remainingMs / 1000) : "—"}
+                  {screen === "countdown"
+                    ? countdownStartedAt != null &&
+                      countdownSeconds > 0 &&
+                      Date.now() - countdownStartedAt < 1000
+                      ? countdownSeconds
+                      : Math.ceil(remainingMs / 1000)
+                    : "—"}
                 </Typography>
               </Box>
             </Box>
