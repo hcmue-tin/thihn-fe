@@ -13,7 +13,7 @@ const flash = keyframes`
   50% { transform: scale(1.02); filter: brightness(1.08); }
 `;
 
-const DESKTOP_FRAME_MAX_WIDTH = 1440;
+const DESKTOP_FRAME_MAX_WIDTH = 1680;
 
 
 const ScreenRoot = styled(Box)({
@@ -254,7 +254,7 @@ export const LedScreenPage = () => {
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                lg: "300px minmax(0, 1fr) 220px"
+                lg: "460px minmax(0, 1fr) 220px"
               },
               gap: { xs: 1.5, md: 2.5 },
               alignItems: "stretch"
@@ -324,127 +324,127 @@ export const LedScreenPage = () => {
               {question && (
                 <Fade in timeout={450}>
                   <GlassCard sx={{ p: { xs: 1.2, sm: 1.5, md: 2 }, borderRadius: { xs: 3, md: 4 }, minWidth: 0, minHeight: { lg: "50vh" } }}>
-                      {question.type === "fill_blank" ? (
-                        <QuestionContentWithBlank
-                          content={question.content}
-                          sx={{
-                            fontWeight: 800,
-                            color: "#1A3A4A",
-                            textAlign: "center",
-                            fontSize: { xs: "1.3rem", sm: "1.5rem", md: "1.95rem" },
-                            lineHeight: 1.2,
-                            mb: 0
-                          }}
-                        />
-                      ) : (
-                        <Typography
-                          component="div"
-                          sx={{
-                            fontWeight: 800,
-                            color: "#1A3A4A",
-                            textAlign: "center",
-                            fontSize: { xs: "1.3rem", sm: "1.5rem", md: "1.95rem" },
-                            lineHeight: 1.2,
-                            overflowWrap: "anywhere"
-                          }}
-                        >
-                          {questionTitle}
-                        </Typography>
-                      )}
-                      {question.type === "matching" && (matchingColumns.left.length > 0 || matchingColumns.right.length > 0) && (
-                        <Box
-                          sx={{
-                            mt: 2,
-                            display: "grid",
-                            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-                            gap: { xs: 1.25, md: 2 }
-                          }}
-                        >
-                          <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
-                            <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
-                              Cột trái
-                            </Typography>
-                            {matchingColumns.left.map((item, idx) => (
-                              <Box
-                                key={`left-${idx}`}
-                                sx={{
-                                  mb: 0.7,
-                                  px: 1.2,
-                                  py: 0.8,
-                                  borderRadius: 2,
-                                  border: "1px solid rgba(26,140,142,0.22)",
-                                  background: "rgba(255,255,255,0.7)"
-                                }}
+                    {question.type === "fill_blank" ? (
+                      <QuestionContentWithBlank
+                        content={question.content}
+                        sx={{
+                          fontWeight: 800,
+                          color: "#1A3A4A",
+                          textAlign: "center",
+                          fontSize: { xs: "1.3rem", sm: "1.5rem", md: "1.95rem" },
+                          lineHeight: 1.2,
+                          mb: 0
+                        }}
+                      />
+                    ) : (
+                      <Typography
+                        component="div"
+                        sx={{
+                          fontWeight: 800,
+                          color: "#1A3A4A",
+                          textAlign: "center",
+                          fontSize: { xs: "1.3rem", sm: "1.5rem", md: "1.95rem" },
+                          lineHeight: 1.2,
+                          overflowWrap: "anywhere"
+                        }}
+                      >
+                        {questionTitle}
+                      </Typography>
+                    )}
+                    {question.type === "matching" && (matchingColumns.left.length > 0 || matchingColumns.right.length > 0) && (
+                      <Box
+                        sx={{
+                          mt: 2,
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                          gap: { xs: 1.25, md: 2 }
+                        }}
+                      >
+                        <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
+                          <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
+                            Cột trái
+                          </Typography>
+                          {matchingColumns.left.map((item, idx) => (
+                            <Box
+                              key={`left-${idx}`}
+                              sx={{
+                                mb: 0.7,
+                                px: 1.2,
+                                py: 0.8,
+                                borderRadius: 2,
+                                border: "1px solid rgba(26,140,142,0.22)",
+                                background: "rgba(255,255,255,0.7)"
+                              }}
+                            >
+                              <Typography
+                                component="div"
+                                sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
                               >
-                                <Typography
-                                  component="div"
-                                  sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
-                                >
-                                  ({idx + 1}) {item}
-                                </Typography>
-                              </Box>
-                            ))}
-                          </GlassCard>
-                          <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
-                            <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
-                              Cột phải
-                            </Typography>
-                            {matchingColumns.right.map((item, idx) => (
-                              <Box
-                                key={`right-${idx}`}
-                                sx={{
-                                  mb: 0.7,
-                                  px: 1.2,
-                                  py: 0.8,
-                                  borderRadius: 2,
-                                  border: "1px solid rgba(26,140,142,0.22)",
-                                  background: "rgba(255,255,255,0.7)"
-                                }}
+                                ({idx + 1}) {item}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </GlassCard>
+                        <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
+                          <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
+                            Cột phải
+                          </Typography>
+                          {matchingColumns.right.map((item, idx) => (
+                            <Box
+                              key={`right-${idx}`}
+                              sx={{
+                                mb: 0.7,
+                                px: 1.2,
+                                py: 0.8,
+                                borderRadius: 2,
+                                border: "1px solid rgba(26,140,142,0.22)",
+                                background: "rgba(255,255,255,0.7)"
+                              }}
+                            >
+                              <Typography
+                                component="div"
+                                sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
                               >
-                                <Typography
-                                  component="div"
-                                  sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
-                                >
-                                  {String.fromCharCode(65 + idx)}. {item}
-                                </Typography>
-                              </Box>
-                            ))}
-                          </GlassCard>
-                        </Box>
-                      )}
-                      {question.imageUrl && (
-                        <Box
-                          component="img"
-                          key={`${question.id}-${question.imageUrl}`}
-                          src={resolveMediaUrl(question.imageUrl)}
-                          alt="Hình minh họa câu hỏi"
-                          sx={{
-                            mt: 2,
-                            display: "block",
-                            mx: "auto",
-                            maxWidth: "100%",
-                            maxHeight: 320,
-                            borderRadius: 3,
-                            objectFit: "contain",
-                            boxShadow: "0 18px 36px rgba(15, 23, 42, 0.16)"
-                          }}
-                          onError={(event) => {
-                            const target = event.currentTarget;
-                            target.style.display = "none";
-                          }}
-                        />
-                      )}
-                      {question.audioUrl && (
-                        <audio
-                          ref={ledAudioRef}
-                          key={`${question.id}-${question.audioUrl}`}
-                          controls
-                          crossOrigin="anonymous"
-                          style={{ marginTop: 16, width: "100%" }}
-                        >
-                          <source src={resolveMediaUrl(question.audioUrl)} />
-                        </audio>
-                      )}
+                                {String.fromCharCode(65 + idx)}. {item}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </GlassCard>
+                      </Box>
+                    )}
+                    {question.imageUrl && (
+                      <Box
+                        component="img"
+                        key={`${question.id}-${question.imageUrl}`}
+                        src={resolveMediaUrl(question.imageUrl)}
+                        alt="Hình minh họa câu hỏi"
+                        sx={{
+                          mt: 2,
+                          display: "block",
+                          mx: "auto",
+                          maxWidth: "100%",
+                          maxHeight: 320,
+                          borderRadius: 3,
+                          objectFit: "contain",
+                          boxShadow: "0 18px 36px rgba(15, 23, 42, 0.16)"
+                        }}
+                        onError={(event) => {
+                          const target = event.currentTarget;
+                          target.style.display = "none";
+                        }}
+                      />
+                    )}
+                    {question.audioUrl && (
+                      <audio
+                        ref={ledAudioRef}
+                        key={`${question.id}-${question.audioUrl}`}
+                        controls
+                        crossOrigin="anonymous"
+                        style={{ marginTop: 16, width: "100%" }}
+                      >
+                        <source src={resolveMediaUrl(question.audioUrl)} />
+                      </audio>
+                    )}
                     {options.length > 0 && (
                       <Box
                         sx={{
@@ -509,33 +509,33 @@ export const LedScreenPage = () => {
                       question?.type !== "matching" &&
                       question?.type !== "ordering" &&
                       revealDetailText.length > 0 && (
-                      <GlassCard
-                        sx={{
-                          mt: 2,
-                          p: { xs: 1.3, sm: 1.6, md: 2 },
-                          borderRadius: { xs: 3, md: 4 },
-                          border: "2px solid rgba(212,167,65,0.55)",
-                          background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.88))",
-                          minWidth: 0
-                        }}
-                      >
-                        {revealDetailText.map((line, idx) => (
-                          <Typography
-                            key={`${line}-${idx}`}
-                            component="div"
-                            sx={{
-                              fontWeight: idx === 0 ? 900 : 700,
-                              color: idx === 0 ? "#8A5A00" : "#17324d",
-                              fontSize: { xs: idx === 0 ? "0.95rem" : "0.88rem", md: idx === 0 ? "1.1rem" : "0.98rem" },
-                              lineHeight: 1.45,
-                              mt: idx === 0 ? 0 : 0.6
-                            }}
-                          >
-                            {line}
-                          </Typography>
-                        ))}
-                      </GlassCard>
-                    )}
+                        <GlassCard
+                          sx={{
+                            mt: 2,
+                            p: { xs: 1.3, sm: 1.6, md: 2 },
+                            borderRadius: { xs: 3, md: 4 },
+                            border: "2px solid rgba(212,167,65,0.55)",
+                            background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.88))",
+                            minWidth: 0
+                          }}
+                        >
+                          {revealDetailText.map((line, idx) => (
+                            <Typography
+                              key={`${line}-${idx}`}
+                              component="div"
+                              sx={{
+                                fontWeight: idx === 0 ? 900 : 700,
+                                color: idx === 0 ? "#8A5A00" : "#17324d",
+                                fontSize: { xs: idx === 0 ? "0.95rem" : "0.88rem", md: idx === 0 ? "1.1rem" : "0.98rem" },
+                                lineHeight: 1.45,
+                                mt: idx === 0 ? 0 : 0.6
+                              }}
+                            >
+                              {line}
+                            </Typography>
+                          ))}
+                        </GlassCard>
+                      )}
 
                     {question.type === "matching" && screen === "reveal" && ledSolutionVisible && matchingConnections.length > 0 && (
                       <GlassCard
@@ -618,8 +618,8 @@ export const LedScreenPage = () => {
             >
               <Box
                 sx={{
-                  width: { xs: 124, md: 156, lg: 210 },
-                  height: { xs: 124, md: 156, lg: 210 },
+                  width: { xs: 200, md: 300, lg: 440 },
+                  height: { xs: 200, md: 300, lg: 440 },
                   borderRadius: "50%",
                   border: "2px solid rgba(15,107,109,0.28)",
                   background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
@@ -627,7 +627,7 @@ export const LedScreenPage = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   boxShadow: "0 16px 34px rgba(15,107,109,0.14)",
-                  transform: { lg: "translateX(150px)" }
+                  transform: { lg: "translateX(110px)" }
                 }}
               >
                 <Typography
@@ -635,7 +635,7 @@ export const LedScreenPage = () => {
                   sx={{
                     fontWeight: 900,
                     color: "#17324d",
-                    fontSize: { xs: "2.2rem", md: "3rem", lg: "4.2rem" },
+                    fontSize: { xs: "5rem", md: "8rem", lg: "13rem" },
                     lineHeight: 1
                   }}
                 >
