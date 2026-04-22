@@ -333,11 +333,13 @@ export const LedScreenPage = () => {
                           fontWeight: 800,
                           color: "#334155",
                           fontSize: fluidFont.body,
-                          whiteSpace: "nowrap",
+                          whiteSpace: "normal",
                           flexShrink: 0,
                           maxWidth: "55%",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis"
+                          textAlign: "right",
+                          overflowWrap: "anywhere",
+                          wordBreak: "break-word",
+                          lineHeight: 1.35
                         }}
                       >
                         {row.answerSummary || ""}
