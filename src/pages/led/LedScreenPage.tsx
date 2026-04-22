@@ -297,55 +297,88 @@ export const LedScreenPage = () => {
               </Typography>
               <Box sx={{ mt: fluid(0.5, 0.9, 1.25), display: "grid", gap: fluid(0.3, 0.5, 0.7) }}>
                 {screen === "reveal" && answerResults ? (
-                  answerResults.results.map((row) => (
-                    <Box
-                      key={`${row.contestantId}-${row.teamName}`}
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: fluid(0.4, 0.6, 0.9),
-                        px: fluid(0.6, 0.9, 1.2),
-                        py: fluid(0.5, 0.75, 1),
-                        borderRadius: 2.5,
-                        background: "rgba(255,255,255,0.56)",
-                        border: "1px solid rgba(111, 165, 207, 0.18)"
-                      }}
-                    >
-                      <Typography
-                        component="div"
+                  answerResults.results.map((row) => {
+                    const contestantName = (row.contestantName || "").trim();
+                    const answerSummary = (row.answerSummary || "").trim();
+                    const isPairAnswer = /\d+\s*[:.]\s*[A-Za-z]/.test(answerSummary);
+                    const isShortTokenAnswer = /^[A-Za-z]{1,8}$/.test(answerSummary);
+                    // Auto layout rule:
+                    // - keep inline only when both name and answer are short
+                    // - force new line for matching-style answers (1:A;2:B;...)
+                    // - force new line when contestant name is long
+                    const hasLongName = contestantName.length > 26;
+                    const shouldInlineSummary =
+                      answerSummary.length > 0 && !isPairAnswer && isShortTokenAnswer && !hasLongName;
+
+                    return (
+                      <Box
+                        key={`${row.contestantId}-${row.teamName}`}
                         sx={{
-                          fontWeight: 800,
-                          color: "#17324d",
-                          textAlign: "left",
-                          minWidth: 0,
-                          fontSize: fluidFont.body,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap"
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "stretch",
+                          gap: fluid(0.35, 0.5, 0.7),
+                          px: fluid(0.6, 0.9, 1.2),
+                          py: fluid(0.5, 0.75, 1),
+                          borderRadius: 2.5,
+                          background: "rgba(255,255,255,0.56)",
+                          border: "1px solid rgba(111, 165, 207, 0.18)"
                         }}
                       >
-                        {row.contestantName}
-                      </Typography>
-                      <Typography
-                        component="div"
-                        sx={{
-                          fontWeight: 800,
-                          color: "#334155",
-                          fontSize: fluidFont.body,
-                          whiteSpace: "normal",
-                          flexShrink: 0,
-                          maxWidth: "55%",
-                          textAlign: "right",
-                          overflowWrap: "anywhere",
-                          wordBreak: "break-word",
-                          lineHeight: 1.35
-                        }}
-                      >
-                        {row.answerSummary || ""}
-                      </Typography>
-                    </Box>
-                  ))
+                        <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1 }}>
+                          <Typography
+                            component="div"
+                            sx={{
+                              fontWeight: 800,
+                              color: "#17324d",
+                              textAlign: "left",
+                              fontSize: fluidFont.body,
+                              minWidth: 0,
+                              whiteSpace: shouldInlineSummary ? "nowrap" : "normal",
+                              overflow: "hidden",
+                              textOverflow: shouldInlineSummary ? "ellipsis" : "unset",
+                              overflowWrap: shouldInlineSummary ? "normal" : "anywhere",
+                              lineHeight: 1.3
+                            }}
+                          >
+                            {contestantName}
+                          </Typography>
+                          {shouldInlineSummary && (
+                            <Typography
+                              component="div"
+                              sx={{
+                                fontWeight: 700,
+                                color: "#334155",
+                                fontSize: fluidFont.body,
+                                whiteSpace: "nowrap",
+                                flexShrink: 0
+                              }}
+                            >
+                              {answerSummary}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {!shouldInlineSummary && answerSummary.length > 0 && (
+                          <Typography
+                            component="div"
+                            sx={{
+                              fontWeight: 700,
+                              color: "#334155",
+                              fontSize: fluidFont.body,
+                              whiteSpace: "normal",
+                              textAlign: "left",
+                              overflowWrap: "anywhere",
+                              wordBreak: "break-word",
+                              lineHeight: 1.35
+                            }}
+                          >
+                            {answerSummary}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  })
                 ) : (
                   <Box sx={{ minHeight: "0.75rem" }} />
                 )}
