@@ -7,17 +7,21 @@ import { parseMatchingContent } from "../../components/admin/matchingEditorUtils
 import { useCountdownClock } from "../../hooks/realtime/useCountdownClock";
 import { useLedAudioSync } from "../../hooks/realtime/useLedAudioSync";
 import { useRealtime } from "../../hooks/useRealtime";
+import { fluid, fluidFont } from "../../utils/fluid";
 
 const flash = keyframes`
   0%, 100% { transform: scale(1); filter: brightness(1); }
   50% { transform: scale(1.02); filter: brightness(1.08); }
 `;
 
-const DESKTOP_FRAME_MAX_WIDTH = 1680;
-
+/*
+ * LED screen — designed for 1080p and 4K LED walls as the primary target.
+ * Every size uses clamp() / vmin / fr units so the whole UI scales smoothly
+ * from laptops (preview) up to massive displays. No stepped breakpoints.
+ */
 
 const ScreenRoot = styled(Box)({
-  minHeight: "100svh",
+  height: "100svh",
   width: "100vw",
   position: "relative",
   overflow: "hidden",
@@ -31,14 +35,14 @@ const GlassCard = styled(Paper)({
   backdropFilter: "blur(16px)",
   border: "1px solid rgba(26,140,142,0.15)",
   boxShadow: "0 16px 48px rgba(26,140,142,0.1)",
-  borderRadius: 20,
+  borderRadius: "1rem",
   color: "#1A3A4A"
 });
 
 const OptionCard = styled(GlassCard, {
   shouldForwardProp: (prop) => prop !== "highlighted"
 })<{ highlighted?: boolean }>(({ highlighted }) => ({
-  padding: 20,
+  padding: "clamp(0.8rem, 1.4vw, 1.6rem)",
   animation: highlighted ? `${flash} 900ms ease-in-out 2` : "none",
   borderColor: highlighted ? "#D4A741" : "rgba(184,217,236,0.3)",
   border: highlighted ? "2px solid #D4A741" : "1px solid rgba(184,217,236,0.3)",
@@ -67,8 +71,14 @@ export const LedScreenPage = () => {
     leaderboard,
     answerResults,
     connectSocket
-  } =
-    useRealtime();
+  } = useRealtime();
+
+  // Lock body scrolling on the LED route.
+  useEffect(() => {
+    document.body.classList.add("app-no-scroll");
+    return () => document.body.classList.remove("app-no-scroll");
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("adminToken") || localStorage.getItem("accessToken");
     if (token) {
@@ -101,7 +111,6 @@ export const LedScreenPage = () => {
       if (question.type === "matching" || question.type === "ordering") return [];
       return [`Đáp án chấp nhận: ${reveal.fillBlankAnswers.join(" | ")}`];
     }
-
     return [];
   }, [question, reveal]);
   const acceptedAnswerCompact = useMemo(() => {
@@ -165,16 +174,18 @@ export const LedScreenPage = () => {
     ledBackgroundFallback;
   const ledBackgroundImage = ledBg && ledBg.trim().length > 0 ? resolveMediaUrl(ledBg) : "";
   const debugEnabled = new URLSearchParams(window.location.search).get("debugBg") === "1";
+
+  // Fluid frame: leaves breathing room on desktop, expands to full width
+  // on laptops and shrinks gracefully on tablets.
+  const frameMaxWidth = "min(98vw, 110rem)";
+
   return (
     <ScreenRoot>
-      {/* Nền cố định (fixed) toàn màn hình */}
+      {/* Fluid background — logos must NOT be embedded in the image. */}
       <Box
         sx={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
+          inset: 0,
           zIndex: 0,
           backgroundColor: "#EAF3F8",
           overflow: "hidden"
@@ -191,10 +202,10 @@ export const LedScreenPage = () => {
                 inset: 0,
                 width: "100%",
                 height: "100%",
-                objectFit: "fill",
-                objectPosition: "center",
-                opacity: 0.3,
-                filter: "blur(14px) saturate(0.95)",
+                objectFit: "cover",
+                objectPosition: "center center",
+                opacity: 0.34,
+                filter: "blur(20px) saturate(0.95)",
                 transform: "scale(1.05)"
               }}
             />
@@ -209,22 +220,19 @@ export const LedScreenPage = () => {
                 inset: 0,
                 width: "100%",
                 height: "100%",
-                objectFit: "fill",
-                objectPosition: "center",
+                objectFit: "contain",
+                objectPosition: "center center",
                 opacity: 1
               }}
             />
           </>
         )}
       </Box>
-      {/* Overlay gradient tinh chỉnh */}
+      {/* Subtle overlay for text contrast. */}
       <Box
         sx={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
+          inset: 0,
           zIndex: 0,
           background:
             "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 38%, rgba(255,255,255,0.06) 100%)",
@@ -236,35 +244,54 @@ export const LedScreenPage = () => {
         sx={{
           position: "relative",
           zIndex: 1,
-          minHeight: "100svh",
-          px: { xs: 2, sm: 3, md: 4 },
-          pt: { xs: "12vh", sm: "13vh", md: "14vh", lg: "15vh" },
-          pb: { xs: 4, sm: 6, md: 8, lg: 10 },
-          display: "flex",
-          flexDirection: "column",
-          gap: { xs: 1.5, md: 2 }
+          height: "100svh",
+          overflow: "hidden",
+          px: fluid(0.75, 1.6, 2.5),
+          pt: 0,
+          pb: fluid(0.5, 1, 1.2),
+          display: "grid",
+          gridTemplateRows: "20svh minmax(0, 80svh)",
+          "@media (max-width: 900px)": {
+            gridTemplateRows: "auto minmax(0, 1fr)"
+          }
         }}
       >
+        {/* 20% top reserved for logo/banner area */}
+        <Box sx={{ height: "100%", minHeight: 0 }} />
+
+        <Box sx={{ height: "100%", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: fluid(0.5, 1, 1.5) }}>
         {(screen === "question" || screen === "countdown" || screen === "reveal") && (
           <Box
             sx={{
+              flex: 1,
+              minHeight: 0,
               width: "100%",
-              maxWidth: DESKTOP_FRAME_MAX_WIDTH,
+              maxWidth: frameMaxWidth,
               mx: "auto",
               display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                lg: "460px minmax(0, 1fr) 220px"
-              },
-              gap: { xs: 1.5, md: 2.5 },
-              alignItems: "stretch"
+              // 3-column fluid layout: left results panel, center question,
+              // right countdown. Columns shrink proportionally with viewport.
+              gridTemplateColumns: "clamp(16rem, 22vw, 24rem) minmax(0, 1fr) clamp(10rem, 16vw, 16rem)",
+              gap: fluid(0.75, 1.5, 2.25),
+              alignItems: "stretch",
+              "@media (max-width: 900px)": {
+                gridTemplateColumns: "1fr",
+                overflow: "auto"
+              }
             }}
           >
-            <GlassCard sx={{ p: { xs: 1.2, md: 1.8 }, borderRadius: { xs: 3, md: 4 }, minHeight: { lg: "50vh" } }}>
-              <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1rem", md: "1.15rem" } }}>
+            <GlassCard
+              sx={{
+                p: fluid(0.75, 1.2, 1.75),
+                borderRadius: fluid(0.75, 1.1, 1.4),
+                minHeight: 0,
+                overflow: "auto"
+              }}
+            >
+              <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: fluidFont.h6 }}>
                 Kết quả thí sinh
               </Typography>
-              <Box sx={{ mt: 1.5, display: "grid", gap: 0.8 }}>
+              <Box sx={{ mt: fluid(0.5, 0.9, 1.25), display: "grid", gap: fluid(0.3, 0.5, 0.7) }}>
                 {screen === "reveal" && answerResults ? (
                   answerResults.results.map((row) => (
                     <Box
@@ -273,9 +300,9 @@ export const LedScreenPage = () => {
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        gap: 1,
-                        px: 1.5,
-                        py: 1.2,
+                        gap: fluid(0.4, 0.6, 0.9),
+                        px: fluid(0.6, 0.9, 1.2),
+                        py: fluid(0.5, 0.75, 1),
                         borderRadius: 2.5,
                         background: "rgba(255,255,255,0.56)",
                         border: "1px solid rgba(111, 165, 207, 0.18)"
@@ -288,7 +315,7 @@ export const LedScreenPage = () => {
                           color: "#17324d",
                           textAlign: "left",
                           minWidth: 0,
-                          fontSize: { xs: "0.95rem", md: "1.05rem" },
+                          fontSize: fluidFont.body,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap"
@@ -301,7 +328,7 @@ export const LedScreenPage = () => {
                         sx={{
                           fontWeight: 800,
                           color: "#334155",
-                          fontSize: { xs: "0.9rem", md: "1rem" },
+                          fontSize: fluidFont.body,
                           whiteSpace: "nowrap",
                           flexShrink: 0,
                           maxWidth: "55%",
@@ -314,16 +341,34 @@ export const LedScreenPage = () => {
                     </Box>
                   ))
                 ) : (
-                  <Box sx={{ minHeight: 12 }} />
+                  <Box sx={{ minHeight: "0.75rem" }} />
                 )}
               </Box>
             </GlassCard>
 
-            {/* Cột giữa: Câu hỏi và đáp án trong cùng 1 cụm */}
-            <Box sx={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", gap: { xs: 1.2, md: 1.8 } }}>
+            {/* Center: question card + options. */}
+            <Box
+              sx={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: fluid(0.5, 1, 1.5),
+                minHeight: 0,
+                overflow: "auto"
+              }}
+            >
               {question && (
                 <Fade in timeout={450}>
-                  <GlassCard sx={{ p: { xs: 1.2, sm: 1.5, md: 2 }, borderRadius: { xs: 3, md: 4 }, minWidth: 0, minHeight: { lg: "50vh" } }}>
+                  <GlassCard
+                    sx={{
+                      p: fluid(0.75, 1.2, 1.75),
+                      borderRadius: fluid(0.75, 1.2, 1.5),
+                      minWidth: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: fluid(0.5, 0.9, 1.25)
+                    }}
+                  >
                     {question.type === "fill_blank" ? (
                       <QuestionContentWithBlank
                         content={question.content}
@@ -331,8 +376,8 @@ export const LedScreenPage = () => {
                           fontWeight: 800,
                           color: "#1A3A4A",
                           textAlign: "center",
-                          fontSize: { xs: "1.3rem", sm: "1.5rem", md: "1.95rem" },
-                          lineHeight: 1.2,
+                          fontSize: fluidFont.h4,
+                          lineHeight: 1.25,
                           mb: 0
                         }}
                       />
@@ -343,34 +388,34 @@ export const LedScreenPage = () => {
                           fontWeight: 800,
                           color: "#1A3A4A",
                           textAlign: "center",
-                          fontSize: { xs: "1.3rem", sm: "1.5rem", md: "1.95rem" },
-                          lineHeight: 1.2,
+                          fontSize: fluidFont.h4,
+                          lineHeight: 1.25,
                           overflowWrap: "anywhere"
                         }}
                       >
                         {questionTitle}
                       </Typography>
                     )}
+
                     {question.type === "matching" && (matchingColumns.left.length > 0 || matchingColumns.right.length > 0) && (
                       <Box
                         sx={{
-                          mt: 2,
                           display: "grid",
-                          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-                          gap: { xs: 1.25, md: 2 }
+                          gap: fluid(0.6, 1, 1.5),
+                          gridTemplateColumns: "repeat(auto-fit, minmax(min(16rem, 100%), 1fr))"
                         }}
                       >
-                        <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
-                          <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
+                        <GlassCard sx={{ p: fluid(0.6, 1, 1.3), borderRadius: 3 }}>
+                          <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8, fontSize: fluidFont.subtitle }}>
                             Cột trái
                           </Typography>
                           {matchingColumns.left.map((item, idx) => (
                             <Box
                               key={`left-${idx}`}
                               sx={{
-                                mb: 0.7,
-                                px: 1.2,
-                                py: 0.8,
+                                mb: fluid(0.3, 0.5, 0.7),
+                                px: fluid(0.5, 0.8, 1.1),
+                                py: fluid(0.4, 0.6, 0.85),
                                 borderRadius: 2,
                                 border: "1px solid rgba(26,140,142,0.22)",
                                 background: "rgba(255,255,255,0.7)"
@@ -378,24 +423,24 @@ export const LedScreenPage = () => {
                             >
                               <Typography
                                 component="div"
-                                sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
+                                sx={{ color: "#17324d", fontWeight: 800, fontSize: fluidFont.subtitle, lineHeight: 1.4 }}
                               >
                                 ({idx + 1}) {item}
                               </Typography>
                             </Box>
                           ))}
                         </GlassCard>
-                        <GlassCard sx={{ p: { xs: 1.25, md: 1.6 }, borderRadius: 3 }}>
-                          <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8 }}>
+                        <GlassCard sx={{ p: fluid(0.6, 1, 1.3), borderRadius: 3 }}>
+                          <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 0.8, fontSize: fluidFont.subtitle }}>
                             Cột phải
                           </Typography>
                           {matchingColumns.right.map((item, idx) => (
                             <Box
                               key={`right-${idx}`}
                               sx={{
-                                mb: 0.7,
-                                px: 1.2,
-                                py: 0.8,
+                                mb: fluid(0.3, 0.5, 0.7),
+                                px: fluid(0.5, 0.8, 1.1),
+                                py: fluid(0.4, 0.6, 0.85),
                                 borderRadius: 2,
                                 border: "1px solid rgba(26,140,142,0.22)",
                                 background: "rgba(255,255,255,0.7)"
@@ -403,7 +448,7 @@ export const LedScreenPage = () => {
                             >
                               <Typography
                                 component="div"
-                                sx={{ color: "#17324d", fontWeight: 800, fontSize: { xs: "1rem", md: "1.1rem" }, lineHeight: 1.4 }}
+                                sx={{ color: "#17324d", fontWeight: 800, fontSize: fluidFont.subtitle, lineHeight: 1.4 }}
                               >
                                 {String.fromCharCode(65 + idx)}. {item}
                               </Typography>
@@ -412,6 +457,7 @@ export const LedScreenPage = () => {
                         </GlassCard>
                       </Box>
                     )}
+
                     {question.imageUrl && (
                       <Box
                         component="img"
@@ -419,11 +465,10 @@ export const LedScreenPage = () => {
                         src={resolveMediaUrl(question.imageUrl)}
                         alt="Hình minh họa câu hỏi"
                         sx={{
-                          mt: 2,
                           display: "block",
                           mx: "auto",
                           maxWidth: "100%",
-                          maxHeight: 320,
+                          maxHeight: fluid(10, 26, 22, "vh"),
                           borderRadius: 3,
                           objectFit: "contain",
                           boxShadow: "0 18px 36px rgba(15, 23, 42, 0.16)"
@@ -440,19 +485,20 @@ export const LedScreenPage = () => {
                         key={`${question.id}-${question.audioUrl}`}
                         controls
                         crossOrigin="anonymous"
-                        style={{ marginTop: 16, width: "100%" }}
+                        style={{ width: "100%" }}
                       >
                         <source src={resolveMediaUrl(question.audioUrl)} />
                       </audio>
                     )}
+
                     {options.length > 0 && (
                       <Box
                         sx={{
-                          mt: 1.8,
                           minWidth: 0,
                           display: "grid",
-                          gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
-                          gap: { xs: 1, sm: 1.2, md: 1.5 }
+                          // Option cards: 2 per row when space allows, 1 on narrow viewports.
+                          gridTemplateColumns: "repeat(auto-fit, minmax(min(20rem, 100%), 1fr))",
+                          gap: fluid(0.5, 0.9, 1.3)
                         }}
                       >
                         {options.map((opt) => (
@@ -461,14 +507,14 @@ export const LedScreenPage = () => {
                             highlighted={
                               screen === "reveal" && ledSolutionVisible && !!reveal?.correctOptionIds.includes(opt.id)
                             }
-                            sx={{ p: { xs: 1.2, sm: 1.4, md: 1.8 }, borderRadius: { xs: 3, md: 4 }, height: "100%" }}
+                            sx={{ borderRadius: fluid(0.75, 1.2, 1.5), height: "100%" }}
                           >
                             <Typography
                               component="div"
                               sx={{
                                 fontWeight: 800,
                                 color: "#17324d",
-                                fontSize: { xs: "1rem", sm: "1.15rem", md: "1.45rem" },
+                                fontSize: fluidFont.title,
                                 lineHeight: 1.25,
                                 textAlign: "center",
                                 overflowWrap: "anywhere"
@@ -481,8 +527,8 @@ export const LedScreenPage = () => {
                         {screen === "reveal" && ledSolutionVisible && question?.type === "ordering" && acceptedAnswerCompact && (
                           <GlassCard
                             sx={{
-                              p: { xs: 1.2, sm: 1.5, md: 1.8 },
-                              borderRadius: { xs: 3, md: 4 },
+                              p: fluid(0.75, 1.2, 1.75),
+                              borderRadius: fluid(0.75, 1.2, 1.5),
                               border: "2px solid rgba(212,167,65,0.55)",
                               background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.88))",
                               gridColumn: "1 / -1"
@@ -494,7 +540,7 @@ export const LedScreenPage = () => {
                                 fontWeight: 900,
                                 color: "#8A5A00",
                                 textAlign: "center",
-                                fontSize: { xs: "1rem", md: "1.15rem" }
+                                fontSize: fluidFont.h6
                               }}
                             >
                               Đáp án chấp nhận: {acceptedAnswerCompact}
@@ -511,9 +557,8 @@ export const LedScreenPage = () => {
                       revealDetailText.length > 0 && (
                         <GlassCard
                           sx={{
-                            mt: 2,
-                            p: { xs: 1.3, sm: 1.6, md: 2 },
-                            borderRadius: { xs: 3, md: 4 },
+                            p: fluid(0.75, 1.2, 1.75),
+                            borderRadius: fluid(0.75, 1.2, 1.5),
                             border: "2px solid rgba(212,167,65,0.55)",
                             background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.88))",
                             minWidth: 0
@@ -526,7 +571,7 @@ export const LedScreenPage = () => {
                               sx={{
                                 fontWeight: idx === 0 ? 900 : 700,
                                 color: idx === 0 ? "#8A5A00" : "#17324d",
-                                fontSize: { xs: idx === 0 ? "0.95rem" : "0.88rem", md: idx === 0 ? "1.1rem" : "0.98rem" },
+                                fontSize: idx === 0 ? fluidFont.subtitle : fluidFont.body,
                                 lineHeight: 1.45,
                                 mt: idx === 0 ? 0 : 0.6
                               }}
@@ -540,57 +585,72 @@ export const LedScreenPage = () => {
                     {question.type === "matching" && screen === "reveal" && ledSolutionVisible && matchingConnections.length > 0 && (
                       <GlassCard
                         sx={{
-                          mt: 2,
-                          p: { xs: 1.25, md: 1.8 },
+                          p: fluid(0.75, 1.2, 1.75),
                           borderRadius: 3,
                           border: "2px solid rgba(15,107,109,0.25)",
                           background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.85) 100%)"
                         }}
                       >
-                        <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", mb: 1.2, fontSize: { xs: "0.9rem", md: "1rem" } }}>
+                        <Typography
+                          component="div"
+                          sx={{ fontWeight: 900, color: "#0F6B6D", mb: fluid(0.5, 0.8, 1.1), fontSize: fluidFont.subtitle }}
+                        >
                           Dây nối đáp án đúng
                         </Typography>
                         {acceptedAnswerCompact && (
                           <Typography
                             component="div"
-                            sx={{ fontWeight: 800, color: "#17324d", mb: 1.2, fontSize: { xs: "0.86rem", md: "0.95rem" } }}
+                            sx={{
+                              fontWeight: 800,
+                              color: "#17324d",
+                              mb: fluid(0.5, 0.8, 1.1),
+                              fontSize: fluidFont.body
+                            }}
                           >
                             Đáp án: {acceptedAnswerCompact}
                           </Typography>
                         )}
-                        <Box sx={{ display: "grid", gap: 1 }}>
+                        <Box sx={{ display: "grid", gap: fluid(0.4, 0.6, 0.9) }}>
                           {matchingConnections.map((connection) => (
                             <Box
                               key={`${connection.leftKey}-${connection.rightKey}`}
-                              sx={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 1 }}
+                              sx={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: fluid(0.4, 0.6, 0.9) }}
                             >
                               <Box
                                 sx={{
-                                  px: 1,
-                                  py: 0.75,
+                                  px: fluid(0.4, 0.6, 0.9),
+                                  py: fluid(0.4, 0.6, 0.85),
                                   borderRadius: 2,
                                   border: `2px solid ${connection.color}`,
                                   backgroundColor: "rgba(255,255,255,0.9)"
                                 }}
                               >
-                                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "0.85rem", md: "0.95rem" } }}>
+                                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.body }}>
                                   ({connection.leftKey}) {connection.leftText}
                                 </Typography>
                               </Box>
-                              <Box sx={{ display: "flex", alignItems: "center", minWidth: { xs: 64, md: 92 } }}>
-                                <Box sx={{ height: 4, flex: 1, borderRadius: 999, backgroundColor: connection.color }} />
-                                <Box sx={{ width: 0, height: 0, borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderLeft: `10px solid ${connection.color}` }} />
+                              <Box sx={{ display: "flex", alignItems: "center", minWidth: fluid(3, 6, 6) }}>
+                                <Box sx={{ height: "0.25rem", flex: 1, borderRadius: 999, backgroundColor: connection.color }} />
+                                <Box
+                                  sx={{
+                                    width: 0,
+                                    height: 0,
+                                    borderTop: "0.4rem solid transparent",
+                                    borderBottom: "0.4rem solid transparent",
+                                    borderLeft: `0.6rem solid ${connection.color}`
+                                  }}
+                                />
                               </Box>
                               <Box
                                 sx={{
-                                  px: 1,
-                                  py: 0.75,
+                                  px: fluid(0.4, 0.6, 0.9),
+                                  py: fluid(0.4, 0.6, 0.85),
                                   borderRadius: 2,
                                   border: `2px solid ${connection.color}`,
                                   backgroundColor: "rgba(255,255,255,0.9)"
                                 }}
                               >
-                                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "0.85rem", md: "0.95rem" } }}>
+                                <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.body }}>
                                   {connection.rightKey}. {connection.rightText}
                                 </Typography>
                               </Box>
@@ -602,10 +662,10 @@ export const LedScreenPage = () => {
                   </GlassCard>
                 </Fade>
               )}
-
-
             </Box>
 
+            {/* Right column: huge countdown circle, sized in vmin for perfect
+                scaling on every aspect ratio. */}
             <Box
               sx={{
                 display: "flex",
@@ -613,21 +673,21 @@ export const LedScreenPage = () => {
                 justifyContent: "flex-start",
                 alignItems: "center",
                 textAlign: "center",
-                pt: { lg: 5 }
+                pt: fluid(0.5, 1, 1.5)
               }}
             >
               <Box
                 sx={{
-                  width: { xs: 200, md: 300, lg: 440 },
-                  height: { xs: 200, md: 300, lg: 440 },
+                  width: fluid(10, 22, 20, "vmin"),
+                  height: fluid(10, 22, 20, "vmin"),
+                  aspectRatio: "1 / 1",
                   borderRadius: "50%",
                   border: "2px solid rgba(15,107,109,0.28)",
                   background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 16px 34px rgba(15,107,109,0.14)",
-                  transform: { lg: "translateX(110px)" }
+                  boxShadow: "0 16px 34px rgba(15,107,109,0.14)"
                 }}
               >
                 <Typography
@@ -635,7 +695,7 @@ export const LedScreenPage = () => {
                   sx={{
                     fontWeight: 900,
                     color: "#17324d",
-                    fontSize: { xs: "5rem", md: "8rem", lg: "13rem" },
+                    fontSize: fluidFont.display,
                     lineHeight: 1
                   }}
                 >
@@ -647,18 +707,31 @@ export const LedScreenPage = () => {
         )}
 
         {screen === "rules" && (
-          <GlassCard sx={{ width: "100%", maxWidth: { xs: "100%", md: 1080 }, mx: "auto", p: { xs: 2, md: 4 }, borderRadius: { xs: 3, md: 4 } }}>
-            <Typography component="div" sx={{ fontWeight: 900, textAlign: "center", color: "#0F6B6D", fontSize: { xs: "1.4rem", md: "2rem" } }}>
+          <GlassCard
+            sx={{
+              width: "100%",
+              maxWidth: "min(90vw, 80rem)",
+              mx: "auto",
+              p: fluid(1.25, 2.2, 3),
+              borderRadius: fluid(0.75, 1.2, 1.5),
+              overflow: "auto",
+              minHeight: 0
+            }}
+          >
+            <Typography
+              component="div"
+              sx={{ fontWeight: 900, textAlign: "center", color: "#0F6B6D", fontSize: fluidFont.h3 }}
+            >
               Thể lệ cuộc thi
             </Typography>
             <Typography
               component="div"
               sx={{
-                mt: 2.5,
+                mt: fluid(1, 1.5, 2.25),
                 whiteSpace: "pre-wrap",
                 textAlign: "left",
                 color: "#1A3A4A",
-                fontSize: { xs: "1rem", md: "1.2rem" },
+                fontSize: fluidFont.subtitle,
                 lineHeight: 1.8
               }}
             >
@@ -671,29 +744,42 @@ export const LedScreenPage = () => {
           <Box
             sx={{
               width: "100%",
-              maxWidth: { xs: "100%", md: 1240 },
+              maxWidth: "min(96vw, 90rem)",
               mx: "auto",
               display: "grid",
-              gap: { xs: 1.5, md: 2 },
-              gridTemplateColumns: "1fr"
+              gap: fluid(0.75, 1.2, 1.75),
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(22rem, 100%), 1fr))",
+              overflow: "auto",
+              minHeight: 0
             }}
           >
             {teamList.teams.map((team) => (
-              <GlassCard key={team.id} sx={{ p: { xs: 2, md: 3 }, borderRadius: { xs: 3, md: 4 } }}>
-                <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: { xs: "1.15rem", md: "1.5rem" }, textAlign: "center" }}>
-                  {team.name.toLowerCase().startsWith('đội') ? team.name : `Đội ${team.name}`}
+              <GlassCard key={team.id} sx={{ p: fluid(1, 1.6, 2.25), borderRadius: fluid(0.75, 1.2, 1.5) }}>
+                <Typography
+                  component="div"
+                  sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: fluidFont.h5, textAlign: "center" }}
+                >
+                  {team.name.toLowerCase().startsWith("đội") ? team.name : `Đội ${team.name}`}
                 </Typography>
-                <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
+                <Box sx={{ mt: fluid(0.5, 0.9, 1.25), display: "grid", gap: fluid(0.4, 0.6, 0.9) }}>
                   {team.contestants.length > 0 ? (
                     team.contestants.map((contestant) => (
-                      <Box key={contestant.id} sx={{ p: 1.5, borderRadius: 2.5, background: "rgba(255,255,255,0.52)", border: "1px solid rgba(111, 165, 207, 0.18)" }}>
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.1rem" } }}>
+                      <Box
+                        key={contestant.id}
+                        sx={{
+                          p: fluid(0.6, 0.9, 1.2),
+                          borderRadius: 2.5,
+                          background: "rgba(255,255,255,0.52)",
+                          border: "1px solid rgba(111, 165, 207, 0.18)"
+                        }}
+                      >
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.subtitle }}>
                           {contestant.name}
                         </Typography>
                       </Box>
                     ))
                   ) : (
-                    <Typography component="div" sx={{ color: "#4b647c" }}>
+                    <Typography component="div" sx={{ color: "#4b647c", fontSize: fluidFont.body }}>
                       Chưa có thí sinh trong đội này
                     </Typography>
                   )}
@@ -707,41 +793,43 @@ export const LedScreenPage = () => {
           <Box
             sx={{
               width: "100%",
-              maxWidth: { xs: "100%", md: 1080 },
+              maxWidth: "min(90vw, 80rem)",
               mx: "auto",
               display: "flex",
               flexDirection: "column",
-              gap: { xs: 1, md: 1.5 }
+              gap: fluid(0.4, 0.8, 1.1),
+              overflow: "auto",
+              minHeight: 0
             }}
           >
             {teamScore?.teams?.map((team) => (
-              <GlassCard key={team.name} sx={{ p: { xs: 1.5, md: 2.2 }, borderRadius: { xs: 3, md: 4 } }}>
+              <GlassCard key={team.name} sx={{ p: fluid(0.75, 1.3, 1.8), borderRadius: fluid(0.75, 1.2, 1.5) }}>
                 <Typography
                   component="div"
-                  sx={{ fontWeight: 800, color: "#17324d", fontSize: { xs: "1rem", md: "1.25rem" }, textAlign: "center" }}
+                  sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.h5, textAlign: "center" }}
                 >
                   {team.name.toLowerCase().startsWith("đội") ? team.name : `Đội ${team.name}`}
                   {` - ${team.totalScore ?? 0} điểm`}
                 </Typography>
                 {team.contestants && team.contestants.length > 0 && (
-                  <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
+                  <Box sx={{ mt: fluid(0.5, 0.9, 1.25), display: "grid", gap: fluid(0.4, 0.6, 0.9) }}>
                     {team.contestants.map((contestant) => (
                       <Box
                         key={`${team.name}-${contestant.contestantId ?? contestant.name}`}
                         sx={{
                           display: "flex",
                           justifyContent: "space-between",
-                          gap: 1,
-                          p: 1.25,
+                          gap: fluid(0.4, 0.6, 0.9),
+                          p: fluid(0.5, 0.8, 1.1),
                           borderRadius: 2.5,
                           background: "rgba(255,255,255,0.52)",
                           border: "1px solid rgba(111, 165, 207, 0.18)"
                         }}
                       >
-                        <Typography component="div" sx={{ fontWeight: 700, color: "#17324d" }}>
+                        <Typography component="div" sx={{ fontWeight: 700, color: "#17324d", fontSize: fluidFont.body }}>
                           {contestant.name}
                         </Typography>
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#11416f" }}>
+                        <Typography component="div" sx={{ fontWeight: 800, color: "#11416f", fontSize: fluidFont.body }}>
                           {`${contestant.score ?? 0} điểm`}
                         </Typography>
                       </Box>
@@ -757,19 +845,21 @@ export const LedScreenPage = () => {
           <Box
             sx={{
               width: "100%",
-              maxWidth: { xs: "100%", md: 1080 },
+              maxWidth: "min(90vw, 80rem)",
               mx: "auto",
               display: "flex",
               flexDirection: "column",
-              gap: { xs: 1, md: 1.5 }
+              gap: fluid(0.4, 0.8, 1.1),
+              overflow: "auto",
+              minHeight: 0
             }}
           >
             {leaderboard?.rankings?.map((item) => (
               <GlassCard
                 key={`${item.rank}-${item.name}`}
                 sx={{
-                  p: { xs: 1.5, md: 2.2 },
-                  borderRadius: { xs: 3, md: 4 },
+                  p: fluid(0.75, 1.3, 1.8),
+                  borderRadius: fluid(0.75, 1.2, 1.5),
                   border:
                     item.rank === 1
                       ? "2px solid #D4A741"
@@ -781,17 +871,18 @@ export const LedScreenPage = () => {
                   background: item.rank === 1 ? "linear-gradient(135deg, rgba(245,217,138,0.2), rgba(255,255,255,0.88))" : undefined
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: fluid(0.6, 1, 1.4) }}>
                   <Box
                     sx={{
-                      width: 44,
-                      height: 44,
+                      width: fluid(2.2, 3.5, 3.5),
+                      height: fluid(2.2, 3.5, 3.5),
+                      aspectRatio: "1 / 1",
                       borderRadius: "50%",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       fontWeight: 900,
-                      fontSize: "1.1rem",
+                      fontSize: fluidFont.subtitle,
                       flexShrink: 0,
                       color: "#FFFFFF",
                       background:
@@ -807,13 +898,13 @@ export const LedScreenPage = () => {
                     {item.rank}
                   </Box>
                   <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: fluid(0.5, 0.9, 1.25) }}>
                       <Typography
                         component="div"
                         sx={{
                           fontWeight: 800,
                           color: "#1A3A4A",
-                          fontSize: { xs: "1rem", md: "1.25rem" },
+                          fontSize: fluidFont.h5,
                           minWidth: 0,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -827,7 +918,7 @@ export const LedScreenPage = () => {
                         sx={{
                           fontWeight: 800,
                           color: "#11416f",
-                          fontSize: { xs: "0.95rem", md: "1.1rem" },
+                          fontSize: fluidFont.subtitle,
                           whiteSpace: "nowrap",
                           flexShrink: 0
                         }}
@@ -835,7 +926,7 @@ export const LedScreenPage = () => {
                         {`${item.totalScore ?? 0} điểm`}
                       </Typography>
                     </Box>
-                    <Typography component="div" sx={{ mt: 0.25, color: "#4A7A8A", fontSize: { xs: "0.92rem", md: "1rem" } }}>
+                    <Typography component="div" sx={{ mt: 0.25, color: "#4A7A8A", fontSize: fluidFont.body }}>
                       {item.team ? (item.team.toLowerCase().startsWith("đội") ? item.team : `Đội ${item.team}`) : "Chưa có đội"}
                     </Typography>
                   </Box>
@@ -844,6 +935,7 @@ export const LedScreenPage = () => {
             ))}
           </Box>
         )}
+        </Box>
       </Box>
       {debugEnabled && (
         <Box

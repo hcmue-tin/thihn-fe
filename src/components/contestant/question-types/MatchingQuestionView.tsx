@@ -1,5 +1,6 @@
-import { Button, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Stack, TextField, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
+import { fluid, fluidFont } from "../../../utils/fluid";
 import { parseMatchingContent } from "../../admin/matchingEditorUtils";
 
 type Props = {
@@ -122,14 +123,31 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
     );
   }
 
+  const pillSx = {
+    borderRadius: 2,
+    justifyContent: "flex-start",
+    textAlign: "left",
+    px: fluid(0.75, 1.1, 1.5),
+    py: fluid(0.6, 0.9, 1.1),
+    minHeight: fluid(2.25, 2.75, 3.25),
+    textTransform: "none",
+    fontSize: fluidFont.body
+  } as const;
+
   return (
-    <Stack spacing={1.5}>
-      <Typography variant="body2" sx={{ color: "#111827", fontWeight: 500 }}>
+    <Stack spacing={fluid(0.5, 0.9, 1.25)}>
+      <Typography sx={{ color: "#111827", fontWeight: 500, fontSize: fluidFont.body }}>
         {completedAllPairs ? "Đã ghép đủ cặp, vui lòng nộp bài." : "Chọn 1 mục ở cột trái và 1 mục ở cột phải để ghép cặp"}
       </Typography>
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <Stack spacing={1} sx={{ flex: 1 }}>
-          <Typography variant="subtitle2" sx={{ color: "#111827", fontWeight: 600, mb: 0.5 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gap: fluid(0.75, 1.2, 1.8),
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))"
+        }}
+      >
+        <Stack spacing={fluid(0.4, 0.6, 0.9)}>
+          <Typography sx={{ color: "#111827", fontWeight: 600, fontSize: fluidFont.body }}>
             Cột trái
           </Typography>
           {leftItems.map((left) => (
@@ -140,12 +158,7 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
               disabled={interactionLocked}
               onClick={() => handleLeftSelect(left.key)}
               sx={{
-                borderRadius: 2,
-                justifyContent: "flex-start",
-                textAlign: "left",
-                px: 2,
-                py: 1.5,
-                textTransform: "none",
+                ...pillSx,
                 fontWeight: selectedLeftKey === left.key ? 600 : 500,
                 borderColor: usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)",
                 color: usedLeftKeys.has(left.key) ? "#6B7280" : "#111827",
@@ -167,13 +180,14 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
                 }
               }}
             >
-              Mục {left.key}{left.text ? `: ${left.text}` : ""}{" "}
-              {matchingPairs[left.key] && <span style={{ marginLeft: 8, fontWeight: 700 }}>→ {matchingPairs[left.key]}</span>}
+              Mục {left.key}
+              {left.text ? `: ${left.text}` : ""}{" "}
+              {matchingPairs[left.key] && <span style={{ marginLeft: "0.5em", fontWeight: 700 }}>→ {matchingPairs[left.key]}</span>}
             </Button>
           ))}
         </Stack>
-        <Stack spacing={1} sx={{ flex: 1 }}>
-          <Typography variant="subtitle2" sx={{ color: "#111827", fontWeight: 600, mb: 0.5 }}>
+        <Stack spacing={fluid(0.4, 0.6, 0.9)}>
+          <Typography sx={{ color: "#111827", fontWeight: 600, fontSize: fluidFont.body }}>
             Cột phải
           </Typography>
           {rightItems.map((right) => (
@@ -183,10 +197,7 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
               disabled={interactionLocked}
               onClick={() => handleRightSelect(right.key)}
               sx={{
-                borderRadius: 2,
-                px: 2,
-                py: 1.5,
-                textTransform: "none",
+                ...pillSx,
                 fontWeight: selectedRightKey === right.key ? 600 : 500,
                 borderColor: usedRightKeys.has(right.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)",
                 color: usedRightKeys.has(right.key) ? "#6B7280" : "#111827",
@@ -209,11 +220,12 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
                   : {})
               }}
             >
-              Đáp án {right.key}{right.text ? `: ${right.text}` : ""}
+              Đáp án {right.key}
+              {right.text ? `: ${right.text}` : ""}
             </Button>
           ))}
         </Stack>
-      </Stack>
+      </Box>
       <TextField
         label="Kết quả ghép"
         value={fillText}

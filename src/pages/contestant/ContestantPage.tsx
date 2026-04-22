@@ -7,6 +7,7 @@ import { useRealtime } from "../../hooks/useRealtime";
 import { QuestionForm } from "../../components/contestant/QuestionForm";
 import { ResultView } from "../../components/contestant/ResultView";
 import { lightTheme } from "../../theme";
+import { fluid, fluidFont } from "../../utils/fluid";
 
 type ContestantIdentity = {
   id: number;
@@ -17,7 +18,16 @@ type ContestantIdentity = {
   totalScore: number;
 };
 
-const DESKTOP_FRAME_MAX_WIDTH = 1440;
+/*
+ * The contestant page is designed as a fit-to-viewport experience — the
+ * whole UI must fit on laptops (1366x768), desktops and iPad landscape
+ * without any scrolling. We achieve this with:
+ *   - 100svh outer container + overflow: hidden
+ *   - Fluid padding/gap/sizes via clamp() rather than breakpoint ladders
+ *   - A CSS grid for the question / timer row that uses `fr` units so
+ *     internal blocks expand/shrink proportionally with width
+ *   - Body.app-no-scroll via useEffect (desktop/tablet only; see index.css)
+ */
 
 export const ContestantPage = () => {
   const {
@@ -65,6 +75,13 @@ export const ContestantPage = () => {
     inputMode: "text" as const,
     style: { imeMode: "disabled" as never }
   };
+
+  // Opt-in to body-level overflow hidden for this route. The CSS media
+  // query in index.css automatically relaxes this on mobile (<=640px).
+  useEffect(() => {
+    document.body.classList.add("app-no-scroll");
+    return () => document.body.classList.remove("app-no-scroll");
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -195,13 +212,31 @@ export const ContestantPage = () => {
   if (!token || !identity) {
     return (
       <ThemeProvider theme={lightTheme}>
-        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: { xs: 1.5, sm: 2 }, backgroundColor: "#EAF3F8" }}>
-          <Card sx={{ width: "100%", maxWidth: 400, backgroundColor: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", borderRadius: { xs: 3, sm: 5 } }}>
-            <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
-              <Typography variant="h5" sx={{ mb: 3, fontWeight: 900, textAlign: "center", color: "#0F6B6D" }}>
+        <Box
+          sx={{
+            minHeight: "100svh",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: fluid(1, 2, 3),
+            backgroundColor: "#EAF3F8"
+          }}
+        >
+          <Card
+            sx={{
+              width: "min(92vw, 28rem)",
+              backgroundColor: "rgba(255,255,255,0.92)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(26,140,142,0.15)",
+              borderRadius: fluid(1, 1.5, 2)
+            }}
+          >
+            <CardContent sx={{ p: fluid(1.25, 2.2, 3) }}>
+              <Typography variant="h5" sx={{ mb: fluid(1, 1.5, 2), fontWeight: 900, textAlign: "center", color: "#0F6B6D" }}>
                 Đăng nhập thí sinh
               </Typography>
-              <Stack spacing={2.5}>
+              <Stack spacing={fluid(1, 1.5, 2)}>
                 <TextField label="Mã thí sinh" value={code} onChange={(e) => setCode(e.target.value)} fullWidth />
                 <TextField
                   label="Mật khẩu"
@@ -217,7 +252,20 @@ export const ContestantPage = () => {
                   fullWidth
                 />
                 {error && <Alert severity="error">{error}</Alert>}
-                <Button variant="contained" size="large" onClick={handleLogin} disabled={isLoading || !code || !password} sx={{ mt: 2, fontWeight: "bold", minHeight: { xs: 44, sm: 48 }, borderRadius: 3, background: "linear-gradient(135deg, #1A8C8E, #0F6B6D)", "&:hover": { background: "linear-gradient(135deg, #0F6B6D, #0A5557)" } }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleLogin}
+                  disabled={isLoading || !code || !password}
+                  sx={{
+                    mt: fluid(0.5, 1, 1.5),
+                    fontWeight: "bold",
+                    minHeight: fluid(2.5, 3.25, 3.75),
+                    borderRadius: 3,
+                    background: "linear-gradient(135deg, #1A8C8E, #0F6B6D)",
+                    "&:hover": { background: "linear-gradient(135deg, #0F6B6D, #0A5557)" }
+                  }}
+                >
                   Đăng nhập
                 </Button>
               </Stack>
@@ -286,16 +334,22 @@ export const ContestantPage = () => {
     setCode("");
     setPassword("");
   };
+
+  const countdownDisplay =
+    screen === "countdown"
+      ? countdownStartedAt != null && countdownSeconds > 0 && Date.now() - countdownStartedAt < 1000
+        ? countdownSeconds
+        : Math.ceil(remainingMs / 1000)
+      : "—";
+
   return (
     <ThemeProvider theme={lightTheme}>
-      {/* Nền cố định (fixed) toàn màn hình */}
+      {/* Fixed, fluid background — the logo must NEVER be embedded in the
+          background image. Image is a separate, contained element. */}
       <Box
         sx={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
+          inset: 0,
           zIndex: 0,
           backgroundColor: "#EAF3F8",
           overflow: "hidden"
@@ -312,10 +366,10 @@ export const ContestantPage = () => {
                 inset: 0,
                 width: "100%",
                 height: "100%",
-                objectFit: "fill",
-                objectPosition: "center",
-                opacity: 0.3,
-                filter: "blur(14px) saturate(0.95)",
+                objectFit: "cover",
+                objectPosition: "center center",
+                opacity: 0.34,
+                filter: "blur(20px) saturate(0.95)",
                 transform: "scale(1.05)"
               }}
             />
@@ -330,169 +384,259 @@ export const ContestantPage = () => {
                 inset: 0,
                 width: "100%",
                 height: "100%",
-                objectFit: "fill",
-                objectPosition: "center",
+                objectFit: "contain",
+                objectPosition: "center center",
                 opacity: 1
               }}
             />
           </>
         )}
       </Box>
+
       <Box
         sx={{
-          minHeight: "100vh",
+          height: "100svh",
+          width: "100%",
+          display: "grid",
+          gridTemplateRows: "20svh minmax(0, 80svh)",
           position: "relative",
           zIndex: 1,
-          px: { xs: 2, sm: 3, md: 4 },
-          pb: { xs: 3, sm: 4, md: 5 },
-          pt: { xs: "12vh", sm: "13vh", md: "14vh", lg: "15vh" }
+          px: fluid(0.75, 1.6, 2.5),
+          pt: 0,
+          pb: fluid(0.5, 1, 1.2),
+          overflow: "hidden",
+          "@media (max-width: 640px)": {
+            overflow: "auto",
+            height: "auto",
+            minHeight: "100svh",
+            gridTemplateRows: "auto minmax(0, 1fr)"
+          }
         }}
       >
-        <Box sx={{ width: "100%", maxWidth: DESKTOP_FRAME_MAX_WIDTH, mx: "auto", position: "relative", overflow: "hidden", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: { xs: 3, sm: 5 }, p: { xs: 1.5, sm: 2, md: 2.5 }, backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)", boxShadow: "0 16px 48px rgba(26,140,142,0.1)" }}>
-          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", justifyContent: "space-between", gap: 1, mb: 0.5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: "#0F6B6D", textTransform: "uppercase", textAlign: "center", flex: 1, minWidth: 0, fontSize: { xs: "1rem", sm: "1.25rem" }, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: { xs: "normal", sm: "nowrap" }, overflowWrap: "anywhere" }}>
+        {/* 20% top reserved for logo/banner area */}
+        <Box sx={{ height: "100%", minHeight: 0 }} />
+        <Box
+          sx={{
+            height: "100%",
+            minHeight: 0,
+            width: "100%",
+            maxWidth: "min(96vw, 90rem)",
+            mx: "auto",
+            position: "relative",
+            overflow: "hidden",
+            backgroundColor: "rgba(255,255,255,0.92)",
+            borderRadius: fluid(0.75, 1.2, 1.5),
+            p: fluid(0.75, 1.2, 1.75),
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(26,140,142,0.15)",
+            boxShadow: "0 16px 48px rgba(26,140,142,0.1)",
+            display: "flex",
+            flexDirection: "column",
+            gap: fluid(0.4, 0.7, 1)
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: fluid(0.5, 1, 1.5),
+              flexWrap: "wrap"
+            }}
+          >
+            <Typography
+              sx={{
+                fontWeight: 900,
+                color: "#0F6B6D",
+                textTransform: "uppercase",
+                fontSize: fluidFont.h6,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                minWidth: 0,
+                flex: 1
+              }}
+            >
               {identity.name} ({identity.code})
             </Typography>
-            <Button size="small" variant="outlined" color="inherit" onClick={handleLogout} sx={{ fontWeight: 700, flexShrink: 0 }}>
+            <Box
+              sx={{
+                px: fluid(0.9, 1.2, 1.6),
+                py: fluid(0.25, 0.4, 0.55),
+                borderRadius: 999,
+                background: "linear-gradient(135deg, #D4A741, #F5D98A)",
+                color: "#FFFFFF",
+                fontWeight: 800,
+                fontSize: fluidFont.body,
+                boxShadow: "0 4px 16px rgba(212,167,65,0.3)",
+                whiteSpace: "nowrap"
+              }}
+            >
+              Tổng điểm: {latestAnswerResult?.totalScore ?? 0}
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              color="inherit"
+              onClick={handleLogout}
+              sx={{ fontWeight: 700, flexShrink: 0, fontSize: fluidFont.body }}
+            >
               Đăng xuất
             </Button>
           </Box>
           {identity.unit && (
-            <Typography variant="body2" sx={{ textAlign: "center", color: "#4A7A8A", mb: 0.5 }}>
+            <Typography sx={{ textAlign: "center", color: "#4A7A8A", fontSize: fluidFont.body }}>
               {identity.unit}
             </Typography>
           )}
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 2.5 }}>
-            <Box sx={{ px: { xs: 2, sm: 3 }, py: 0.75, borderRadius: 50, background: "linear-gradient(135deg, #D4A741, #F5D98A)", color: "#FFFFFF", fontWeight: 800, fontSize: { xs: "0.9rem", sm: "1rem" }, boxShadow: "0 4px 16px rgba(212,167,65,0.3)" }}>
-              Tổng điểm: {latestAnswerResult?.totalScore ?? 0}
-            </Box>
-          </Box>
 
-        {shouldBlockInteraction && (
-          <Alert severity="warning" sx={{ mb: 2, borderRadius: 3 }}>
-            {isTeamNotSelected ? "Chưa có đội nào được chọn. Vui lòng chờ đến lượt đội của bạn." : "Bạn không thuộc đội đang thi. Vui lòng chờ đến lượt đội của bạn."}
-          </Alert>
-        )}
-        {!shouldBlockInteraction && showWaiting && (
-          <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>
-            {showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}
-          </Alert>
-        )}
-        {showRules && (
-          <Card sx={{ mb: 2, borderRadius: 3, border: "1px solid rgba(26,140,142,0.15)" }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: "#0F6B6D", mb: 1 }}>
-                Thể lệ cuộc thi
-              </Typography>
-              <Typography sx={{ whiteSpace: "pre-wrap", color: "#1A3A4A" }}>
-                {rulesContent?.trim() || "Chưa cấu hình thể lệ cuộc thi"}
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
-
-        {showQuestion && question && (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) 220px" },
-              gap: { xs: 1.5, md: 2 },
-              alignItems: "stretch"
-            }}
-          >
-            <Box
-              sx={{
-                minWidth: 0,
-                p: { xs: 1, sm: 1.5, md: 1.8 },
-                borderRadius: 3,
-                backgroundColor: "rgba(255,255,255,0.9)",
-                border: "1px solid rgba(26,140,142,0.16)",
-                boxShadow: "0 10px 28px rgba(23,50,77,0.08)"
-              }}
-            >
-              <QuestionForm
-                question={question}
-                options={options}
-                selectedOptionIds={selectedOptionIds}
-                fillText={fillText}
-                progress={progress}
-                locked={locked || screen === "reveal"}
-                isLoading={isLoading}
-                isSubmitted={isSubmitted}
-                canSubmit={canSubmit}
-                waitingForCountdown={waitingForCountdown}
-                countdownValue={null}
-                onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
-                onToggleMultiple={(optionId, checked) => {
-                  if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
-                  else setSelectedOptionIds((prev) => prev.filter((id) => id !== optionId));
-                }}
-                onFillTextChange={setFillText}
-                onSubmit={submitAnswer}
-              />
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center"
-              }}
-            >
-              <Box
+          {/* Main content area fills remaining space fluidly. */}
+          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: fluid(0.5, 1, 1.5) }}>
+            {shouldBlockInteraction && (
+              <Alert severity="warning" sx={{ borderRadius: 3, fontSize: fluidFont.body }}>
+                {isTeamNotSelected
+                  ? "Chưa có đội nào được chọn. Vui lòng chờ đến lượt đội của bạn."
+                  : "Bạn không thuộc đội đang thi. Vui lòng chờ đến lượt đội của bạn."}
+              </Alert>
+            )}
+            {!shouldBlockInteraction && showWaiting && (
+              <Alert severity="info" sx={{ borderRadius: 3, fontSize: fluidFont.body }}>
+                {showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}
+              </Alert>
+            )}
+            {showRules && (
+              <Card
                 sx={{
-                  width: { xs: 112, sm: 126, md: 146 },
-                  height: { xs: 112, sm: 126, md: 146 },
-                  borderRadius: "50%",
-                  border: "2px solid rgba(15,107,109,0.28)",
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
-                  boxShadow: "0 12px 28px rgba(15,107,109,0.14)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
+                  borderRadius: 3,
+                  border: "1px solid rgba(26,140,142,0.15)",
+                  overflow: "auto"
                 }}
               >
-                <Typography sx={{ fontWeight: 900, color: "#17324d", lineHeight: 1, fontSize: { xs: "2.2rem", sm: "2.8rem", md: "3.4rem" } }}>
-                  {screen === "countdown"
-                    ? countdownStartedAt != null &&
-                      countdownSeconds > 0 &&
-                      Date.now() - countdownStartedAt < 1000
-                      ? countdownSeconds
-                      : Math.ceil(remainingMs / 1000)
-                    : "—"}
-                </Typography>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: "#0F6B6D", mb: 1 }}>
+                    Thể lệ cuộc thi
+                  </Typography>
+                  <Typography sx={{ whiteSpace: "pre-wrap", color: "#1A3A4A", fontSize: fluidFont.body }}>
+                    {rulesContent?.trim() || "Chưa cấu hình thể lệ cuộc thi"}
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+
+            {showQuestion && question && (
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  display: "grid",
+                  // Question form takes the remaining space; timer column sizes
+                  // fluidly between 9rem (laptop) and 12rem (desktop/LED).
+                  gridTemplateColumns: "minmax(0, 1fr) clamp(8rem, 14vw, 12rem)",
+                  gap: fluid(0.75, 1.4, 2),
+                  alignItems: "stretch",
+                  "@media (max-width: 640px)": {
+                    gridTemplateColumns: "1fr",
+                    gap: fluid(0.75, 1, 1.25)
+                  }
+                }}
+              >
+                <Box
+                  sx={{
+                    minWidth: 0,
+                    minHeight: 0,
+                    p: fluid(0.5, 1, 1.25),
+                    borderRadius: 3,
+                    backgroundColor: "rgba(255,255,255,0.9)",
+                    border: "1px solid rgba(26,140,142,0.16)",
+                    boxShadow: "0 10px 28px rgba(23,50,77,0.08)",
+                    overflow: "auto"
+                  }}
+                >
+                  <QuestionForm
+                    question={question}
+                    options={options}
+                    selectedOptionIds={selectedOptionIds}
+                    fillText={fillText}
+                    progress={progress}
+                    locked={locked || screen === "reveal"}
+                    isLoading={isLoading}
+                    isSubmitted={isSubmitted}
+                    canSubmit={canSubmit}
+                    waitingForCountdown={waitingForCountdown}
+                    countdownValue={null}
+                    onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
+                    onToggleMultiple={(optionId, checked) => {
+                      if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
+                      else setSelectedOptionIds((prev) => prev.filter((id) => id !== optionId));
+                    }}
+                    onFillTextChange={setFillText}
+                    onSubmit={submitAnswer}
+                  />
+                </Box>
+
+                {/* Fluid circular countdown. Size scales with vmin so it
+                    looks balanced on every aspect ratio. */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center"
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: fluid(6, 14, 12, "vmin"),
+                      height: fluid(6, 14, 12, "vmin"),
+                      aspectRatio: "1 / 1",
+                      borderRadius: "50%",
+                      border: "2px solid rgba(15,107,109,0.28)",
+                      background:
+                        "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
+                      boxShadow: "0 12px 28px rgba(15,107,109,0.14)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontWeight: 900,
+                        color: "#17324d",
+                        lineHeight: 1,
+                        fontSize: fluidFont.displaySm
+                      }}
+                    >
+                      {countdownDisplay}
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
-            </Box>
+            )}
+
+            {showResult && latestAnswerResult && <ResultView isCorrect={latestAnswerResult.isCorrect} />}
+            {showCorrectAnswer && (
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  border: "2px solid rgba(212,167,65,0.55)",
+                  background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.92))"
+                }}
+              >
+                <CardContent>
+                  <Typography sx={{ fontWeight: 900, color: "#8A5A00", mb: 0.75, fontSize: fluidFont.subtitle }}>
+                    Đáp án đúng
+                  </Typography>
+                  <Typography sx={{ color: "#17324d", fontWeight: 700, overflowWrap: "anywhere", fontSize: fluidFont.body }}>
+                    {correctAnswerText || "Đang cập nhật đáp án"}
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
           </Box>
-        )}
 
-        {showResult && latestAnswerResult && (
-          <ResultView
-            isCorrect={latestAnswerResult.isCorrect}
-          />
-        )}
-        {showCorrectAnswer && (
-          <Card
-            sx={{
-              mt: 2,
-              borderRadius: 3,
-              border: "2px solid rgba(212,167,65,0.55)",
-              background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.92))"
-            }}
-          >
-            <CardContent>
-              <Typography sx={{ fontWeight: 900, color: "#8A5A00", mb: 0.75 }}>
-                Đáp án đúng
-              </Typography>
-              <Typography sx={{ color: "#17324d", fontWeight: 700, overflowWrap: "anywhere" }}>
-                {correctAnswerText || "Đang cập nhật đáp án"}
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
-
-        <Snackbar open={toastOpen && !!error} autoHideDuration={3500} onClose={() => setToastOpen(false)} message={error} />
+          <Snackbar open={toastOpen && !!error} autoHideDuration={3500} onClose={() => setToastOpen(false)} message={error} />
         </Box>
       </Box>
       {debugEnabled && (

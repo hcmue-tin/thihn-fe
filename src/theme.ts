@@ -1,4 +1,5 @@
 import { createTheme } from "@mui/material/styles";
+import { fluidFont } from "./utils/fluid";
 
 // Brand palette extracted from Chinese watercolor mountain backgrounds
 // Contexts.png & Led.png — teal peaks, golden-orange accents, white clouds, sky blue
@@ -16,6 +17,30 @@ const brand = {
   wrong: "#DC2626"
 };
 
+/*
+ * Fluid typography scale.
+ *
+ * All sizes use clamp() (via utils/fluid.ts) so they grow smoothly with the
+ * viewport instead of snapping at MUI breakpoints. Combined with the viewport
+ * driven root font-size (index.css), every rem value in the app scales.
+ */
+const fluidTypography = {
+  fontFamily: "'Inter', 'Noto Sans SC', 'Roboto', 'Arial', sans-serif",
+  htmlFontSize: 16,
+  h1: { fontWeight: 900, fontSize: fluidFont.h1, lineHeight: 1.1 },
+  h2: { fontWeight: 900, fontSize: fluidFont.h2, lineHeight: 1.15 },
+  h3: { fontWeight: 900, fontSize: fluidFont.h3, lineHeight: 1.2 },
+  h4: { fontWeight: 800, fontSize: fluidFont.h4, lineHeight: 1.2 },
+  h5: { fontWeight: 800, fontSize: fluidFont.h5, lineHeight: 1.25 },
+  h6: { fontWeight: 700, fontSize: fluidFont.h6, lineHeight: 1.3 },
+  subtitle1: { fontSize: fluidFont.subtitle, lineHeight: 1.4 },
+  subtitle2: { fontSize: fluidFont.subtitle, lineHeight: 1.4 },
+  body1: { fontSize: fluidFont.body, lineHeight: 1.5 },
+  body2: { fontSize: fluidFont.body, lineHeight: 1.5 },
+  button: { fontSize: fluidFont.body, textTransform: "none" as const, fontWeight: 700 },
+  caption: { fontSize: fluidFont.caption, lineHeight: 1.4 }
+};
+
 // Admin panel — bright, functional workspace
 export const appTheme = createTheme({
   palette: {
@@ -29,13 +54,7 @@ export const appTheme = createTheme({
     background: { default: "#F0F7FB", paper: "#FFFFFF" },
     text: { primary: brand.text, secondary: brand.textSecondary }
   },
-  typography: {
-    fontFamily: "'Inter', 'Noto Sans SC', 'Roboto', 'Arial', sans-serif",
-    h3: { fontWeight: 900 },
-    h4: { fontWeight: 800 },
-    h5: { fontWeight: 800 },
-    h6: { fontWeight: 700 }
-  },
+  typography: fluidTypography,
   shape: { borderRadius: 14 },
   components: {
     MuiPaper: {
@@ -79,13 +98,7 @@ export const lightTheme = createTheme({
     background: { default: "#F0F7FB", paper: "rgba(255,255,255,0.92)" },
     text: { primary: brand.text, secondary: brand.textSecondary }
   },
-  typography: {
-    fontFamily: "'Inter', 'Noto Sans SC', 'Roboto', 'Arial', sans-serif",
-    h3: { fontWeight: 900 },
-    h4: { fontWeight: 800 },
-    h5: { fontWeight: 800 },
-    h6: { fontWeight: 700 }
-  },
+  typography: fluidTypography,
   shape: { borderRadius: 14 },
   components: {
     MuiPaper: {

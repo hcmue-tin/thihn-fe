@@ -445,9 +445,25 @@ export const AdminPage = () => {
   if (!adminToken) {
     return (
       <ThemeProvider theme={appTheme}>
-        <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 2, background: "linear-gradient(165deg, #E8F4FA 0%, #F0F7FB 50%, #E8F4FA 100%)" }}>
-          <Card sx={{ width: "100%", maxWidth: 400, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(16px)", border: "1px solid rgba(26,140,142,0.15)" }}>
-            <CardContent sx={{ p: 4 }}>
+        <Box
+          sx={{
+            minHeight: "100svh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: "clamp(1rem, 2vw, 3rem)",
+            background: "linear-gradient(165deg, #E8F4FA 0%, #F0F7FB 50%, #E8F4FA 100%)"
+          }}
+        >
+          <Card
+            sx={{
+              width: "min(92vw, 28rem)",
+              background: "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(26,140,142,0.15)"
+            }}
+          >
+            <CardContent sx={{ p: "clamp(1.5rem, 2.5vw, 3rem)" }}>
               <Typography variant="h5" sx={{ mb: 3, fontWeight: 900, textAlign: "center", color: "#0F6B6D" }}>
                 Đăng nhập quản trị
               </Typography>
