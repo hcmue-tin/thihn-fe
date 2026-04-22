@@ -102,7 +102,11 @@ export const LedScreenPage = () => {
     };
   }, []);
 
-  const { remainingSeconds } = useCountdownClock(countdownEndsAt, countdownSeconds);
+  const { remainingMs, remainingSeconds } = useCountdownClock(countdownEndsAt, countdownSeconds);
+  // Keep LED countdown from visually running ahead of contestant clients
+  // when render/network timing differs slightly between devices.
+  const syncedLedSeconds =
+    screen === "countdown" ? Math.max(0, Math.ceil((remainingMs + 250) / 1000)) : remainingSeconds;
   const { ledAudioRef } = useLedAudioSync(socket, question?.audioUrl);
 
   const revealDetailText = useMemo(() => {
@@ -699,7 +703,7 @@ export const LedScreenPage = () => {
                     lineHeight: 1
                   }}
                 >
-                  {screen === "countdown" ? remainingSeconds : "—"}
+                  {screen === "countdown" ? syncedLedSeconds : "—"}
                 </Typography>
               </Box>
             </Box>

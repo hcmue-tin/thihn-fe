@@ -6,6 +6,7 @@ import { clearAllSessions } from "../../auth/session";
 import { useRealtime } from "../../hooks/useRealtime";
 import { QuestionForm } from "../../components/contestant/QuestionForm";
 import { ResultView } from "../../components/contestant/ResultView";
+import { useCountdownClock } from "../../hooks/realtime/useCountdownClock";
 import { lightTheme } from "../../theme";
 import { fluid, fluidFont } from "../../utils/fluid";
 
@@ -63,8 +64,6 @@ export const ContestantPage = () => {
   const [fillText, setFillText] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [locked, setLocked] = useState(false);
-  const [remainingMs, setRemainingMs] = useState(0);
-  const [countdownStartedAt, setCountdownStartedAt] = useState<number | null>(null);
   const [contestantBackgroundFallback, setContestantBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const autoSubmitTriggeredRef = useRef(false);
@@ -129,26 +128,7 @@ export const ContestantPage = () => {
     autoSubmitTriggeredRef.current = false;
   }, [question?.id, questionShowSeq]);
 
-  useEffect(() => {
-    if (!countdownEndsAt) {
-      setRemainingMs(0);
-      setCountdownStartedAt(null);
-      return;
-    }
-    setCountdownStartedAt(Date.now());
-    let raf = 0;
-    const render = () => {
-      setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
-      raf = requestAnimationFrame(render);
-    };
-    raf = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(raf);
-  }, [countdownEndsAt]);
-
-  const progress = useMemo(() => {
-    if (!countdownSeconds) return 0;
-    return Math.min(100, Math.max(0, (remainingMs / (countdownSeconds * 1000)) * 100));
-  }, [remainingMs, countdownSeconds]);
+  const { remainingMs, remainingSeconds, progress } = useCountdownClock(countdownEndsAt, countdownSeconds);
 
   const handleLogin = async (): Promise<void> => {
     setIsLoading(true);
@@ -335,12 +315,7 @@ export const ContestantPage = () => {
     setPassword("");
   };
 
-  const countdownDisplay =
-    screen === "countdown"
-      ? countdownStartedAt != null && countdownSeconds > 0 && Date.now() - countdownStartedAt < 1000
-        ? countdownSeconds
-        : Math.ceil(remainingMs / 1000)
-      : "—";
+  const countdownDisplay = screen === "countdown" ? remainingSeconds : "—";
 
   return (
     <ThemeProvider theme={lightTheme}>

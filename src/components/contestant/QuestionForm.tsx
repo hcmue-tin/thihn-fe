@@ -80,112 +80,127 @@ export const QuestionForm = ({
           }}
         />
 
-        {countdownValue !== null && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Box
-              sx={{
-                minWidth: fluid(6, 9, 10),
-                px: fluid(0.75, 1.1, 1.5),
-                py: fluid(0.4, 0.65, 0.9),
-                borderRadius: 3,
-                textAlign: "center",
-                background: "rgba(255,255,255,0.84)",
-                border: "1px solid rgba(26,140,142,0.22)",
-                boxShadow: "0 10px 24px rgba(23,50,77,0.14)"
-              }}
-            >
-              <Typography sx={{ fontWeight: 900, color: "#17324d", fontSize: fluidFont.displaySm, lineHeight: 1 }}>
-                {countdownValue}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
+        {/* Scrollable content zone: long questions/options stay inside this area,
+            while submit button remains visible below. */}
         <Box
           sx={{
-            display: "grid",
-            gap: fluid(0.75, 1.2, 1.8),
-            alignItems: "start",
-            // Choice questions split into two columns when there's enough
-            // room (via auto-fit minmax). Text-input questions stay single
-            // column. This adapts fluidly without hardcoded breakpoints.
-            gridTemplateColumns: isChoiceLayout ? "repeat(auto-fit, minmax(min(22rem, 100%), 1fr))" : "1fr"
+            flex: 1,
+            minHeight: 0,
+            overflow: "auto",
+            pr: 0.25,
+            display: "flex",
+            flexDirection: "column",
+            gap: fluid(0.5, 0.9, 1.2),
+            // Compact mode on shorter heights to reduce overflow pressure.
+            "@media (max-height: 820px)": {
+              gap: fluid(0.35, 0.6, 0.9),
+              "& .MuiTypography-root": { lineHeight: 1.35 }
+            }
           }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            {question.type === "fill_blank" ? (
-              <QuestionContentWithBlank content={question.content} variant="h6" />
-            ) : (
-              <Typography
-                variant="h6"
+          {countdownValue !== null && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <Box
                 sx={{
-                  mb: fluid(0.5, 0.9, 1.2),
-                  color: "#0F172A",
-                  fontWeight: 800,
-                  lineHeight: 1.45,
-                  fontSize: fluidFont.h6
+                  minWidth: fluid(6, 9, 10),
+                  px: fluid(0.75, 1.1, 1.5),
+                  py: fluid(0.4, 0.65, 0.9),
+                  borderRadius: 3,
+                  textAlign: "center",
+                  background: "rgba(255,255,255,0.84)",
+                  border: "1px solid rgba(26,140,142,0.22)",
+                  boxShadow: "0 10px 24px rgba(23,50,77,0.14)"
                 }}
               >
-                {question.type === "matching" ? matchingStem || question.content : question.content}
-              </Typography>
-            )}
-            {question.imageUrl && (
-              <Stack sx={{ mb: fluid(0.5, 1, 1.4), alignItems: "center" }}>
-                <Box
-                  component="img"
-                  key={`${question.id}-${question.imageUrl}`}
-                  src={resolveMediaUrl(question.imageUrl)}
-                  alt="Hình minh họa câu hỏi"
+                <Typography sx={{ fontWeight: 900, color: "#17324d", fontSize: fluidFont.displaySm, lineHeight: 1 }}>
+                  {countdownValue}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          <Box
+            sx={{
+              display: "grid",
+              gap: fluid(0.75, 1.2, 1.8),
+              alignItems: "start",
+              gridTemplateColumns: isChoiceLayout ? "repeat(auto-fit, minmax(min(22rem, 100%), 1fr))" : "1fr",
+              "@media (max-height: 820px)": { gridTemplateColumns: "1fr" }
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              {question.type === "fill_blank" ? (
+                <QuestionContentWithBlank content={question.content} variant="h6" />
+              ) : (
+                <Typography
+                  variant="h6"
                   sx={{
-                    display: "block",
-                    maxWidth: "100%",
-                    // Fluid max-height: keeps image from dominating the
-                    // viewport on small screens but lets it breathe on LED.
-                    maxHeight: fluid(12, 30, 22, "vh"),
-                    borderRadius: 3,
-                    objectFit: "contain",
-                    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.14)"
+                    mb: fluid(0.5, 0.9, 1.2),
+                    color: "#0F172A",
+                    fontWeight: 800,
+                    lineHeight: 1.45,
+                    fontSize: fluidFont.h6
                   }}
-                  onError={(event) => {
-                    const target = event.currentTarget;
-                    target.style.display = "none";
-                  }}
+                >
+                  {question.type === "matching" ? matchingStem || question.content : question.content}
+                </Typography>
+              )}
+              {question.imageUrl && (
+                <Stack sx={{ mb: fluid(0.5, 1, 1.4), alignItems: "center" }}>
+                  <Box
+                    component="img"
+                    key={`${question.id}-${question.imageUrl}`}
+                    src={resolveMediaUrl(question.imageUrl)}
+                    alt="Hình minh họa câu hỏi"
+                    sx={{
+                      display: "block",
+                      maxWidth: "100%",
+                      maxHeight: fluid(10, 24, 18, "vh"),
+                      borderRadius: 3,
+                      objectFit: "contain",
+                      boxShadow: "0 12px 28px rgba(15, 23, 42, 0.14)"
+                    }}
+                    onError={(event) => {
+                      const target = event.currentTarget;
+                      target.style.display = "none";
+                    }}
+                  />
+                </Stack>
+              )}
+            </Box>
+
+            {isChoiceLayout && (
+              <Box sx={{ minWidth: 0 }}>
+                <ChoiceQuestionView
+                  type={question.type}
+                  options={options}
+                  selectedOptionIds={selectedOptionIds}
+                  locked={choiceInteractionLocked}
+                  onSelectSingle={onSelectSingle}
+                  onToggleMultiple={onToggleMultiple}
                 />
-              </Stack>
+              </Box>
             )}
           </Box>
 
-          {isChoiceLayout && (
-            <Box sx={{ minWidth: 0 }}>
-              <ChoiceQuestionView
-                type={question.type}
-                options={options}
-                selectedOptionIds={selectedOptionIds}
-                locked={choiceInteractionLocked}
-                onSelectSingle={onSelectSingle}
-                onToggleMultiple={onToggleMultiple}
-              />
-            </Box>
+          {question.type === "ordering" && (
+            <OrderingQuestionView
+              options={options}
+              orderingSequence={orderingSequence}
+              locked={textInteractionLocked}
+              onFillTextChange={onFillTextChange}
+            />
+          )}
+
+          {question.type === "matching" && (
+            <MatchingQuestionView
+              content={question.content}
+              fillText={fillText}
+              locked={textInteractionLocked}
+              onFillTextChange={onFillTextChange}
+            />
           )}
         </Box>
-
-        {question.type === "ordering" && (
-          <OrderingQuestionView
-            options={options}
-            orderingSequence={orderingSequence}
-            locked={textInteractionLocked}
-            onFillTextChange={onFillTextChange}
-          />
-        )}
-
-        {question.type === "matching" && (
-          <MatchingQuestionView
-            content={question.content}
-            fillText={fillText}
-            locked={textInteractionLocked}
-            onFillTextChange={onFillTextChange}
-          />
-        )}
 
         <Box sx={{ mt: "auto" }}>
           <Button
