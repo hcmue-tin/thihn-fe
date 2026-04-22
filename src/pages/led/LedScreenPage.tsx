@@ -260,8 +260,37 @@ export const LedScreenPage = () => {
           }
         }}
       >
-        {/* 20% top reserved for logo/banner area */}
-        <Box sx={{ height: "100%", minHeight: 0 }} />
+        {/* 20% top area: countdown centered */}
+        <Box sx={{ height: "100%", minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {(screen === "question" || screen === "countdown" || screen === "reveal") && (
+            <Box
+              sx={{
+                width: fluid(7, 16, 14, "vmin"),
+                height: fluid(7, 16, 14, "vmin"),
+                aspectRatio: "1 / 1",
+                borderRadius: "50%",
+                border: "2px solid rgba(15,107,109,0.28)",
+                background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 16px 34px rgba(15,107,109,0.14)"
+              }}
+            >
+              <Typography
+                component="div"
+                sx={{
+                  fontWeight: 900,
+                  color: "#17324d",
+                  fontSize: fluidFont.display,
+                  lineHeight: 1
+                }}
+              >
+                {screen === "countdown" ? syncedLedSeconds : "—"}
+              </Typography>
+            </Box>
+          )}
+        </Box>
 
         <Box sx={{ height: "100%", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: fluid(0.5, 1, 1.5) }}>
         {(screen === "question" || screen === "countdown" || screen === "reveal") && (
@@ -273,9 +302,8 @@ export const LedScreenPage = () => {
               maxWidth: frameMaxWidth,
               mx: "auto",
               display: "grid",
-              // 3-column fluid layout: left results panel, center question,
-              // right countdown. Columns shrink proportionally with viewport.
-              gridTemplateColumns: "clamp(16rem, 22vw, 24rem) minmax(0, 1fr) clamp(10rem, 16vw, 16rem)",
+              // 2-column layout in 80% area: results + question content.
+              gridTemplateColumns: "clamp(18rem, 28vw, 30rem) minmax(0, 1fr)",
               gap: fluid(0.75, 1.5, 2.25),
               alignItems: "stretch",
               "@media (max-width: 900px)": {
@@ -703,45 +731,6 @@ export const LedScreenPage = () => {
               )}
             </Box>
 
-            {/* Right column: huge countdown circle, sized in vmin for perfect
-                scaling on every aspect ratio. */}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-start",
-                alignItems: "center",
-                textAlign: "center",
-                pt: fluid(0.5, 1, 1.5)
-              }}
-            >
-              <Box
-                sx={{
-                  width: fluid(10, 22, 20, "vmin"),
-                  height: fluid(10, 22, 20, "vmin"),
-                  aspectRatio: "1 / 1",
-                  borderRadius: "50%",
-                  border: "2px solid rgba(15,107,109,0.28)",
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 16px 34px rgba(15,107,109,0.14)"
-                }}
-              >
-                <Typography
-                  component="div"
-                  sx={{
-                    fontWeight: 900,
-                    color: "#17324d",
-                    fontSize: fluidFont.display,
-                    lineHeight: 1
-                  }}
-                >
-                  {screen === "countdown" ? syncedLedSeconds : "—"}
-                </Typography>
-              </Box>
-            </Box>
           </Box>
         )}
 
