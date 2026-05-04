@@ -29,6 +29,8 @@ type Props = {
   onRetakeQuestion: () => Promise<void> | void;
   onShowTeamScore: () => Promise<void> | void;
   onShowLeaderboard: () => Promise<void> | void;
+  onLeaderboardPrevPage: () => Promise<void> | void;
+  onLeaderboardNextPage: () => Promise<void> | void;
   onShowRules: () => Promise<void> | void;
   onShowTeamList: () => Promise<void> | void;
   onRevealSolutionOnLed: () => Promise<void> | void;
@@ -65,6 +67,8 @@ export const ControlRoomSection = ({
   onRetakeQuestion,
   onShowTeamScore,
   onShowLeaderboard,
+  onLeaderboardPrevPage,
+  onLeaderboardNextPage,
   onShowRules,
   onShowTeamList,
   onRevealSolutionOnLed,
@@ -130,6 +134,8 @@ export const ControlRoomSection = ({
       onRetakeQuestion={onRetakeQuestion}
       onShowTeamScore={onShowTeamScore}
       onShowLeaderboard={onShowLeaderboard}
+      onLeaderboardPrevPage={onLeaderboardPrevPage}
+      onLeaderboardNextPage={onLeaderboardNextPage}
       onShowRules={onShowRules}
       onShowTeamList={onShowTeamList}
       onRevealSolutionOnLed={onRevealSolutionOnLed}

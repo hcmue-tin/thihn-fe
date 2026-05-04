@@ -32,6 +32,8 @@ type ExamControlRoomProps = {
   onRetakeQuestion: () => void;
   onShowTeamScore: () => void;
   onShowLeaderboard: () => void;
+  onLeaderboardPrevPage: () => void;
+  onLeaderboardNextPage: () => void;
   onShowRules: () => void;
   onShowTeamList: () => void;
   onRevealSolutionOnLed: () => void;
@@ -65,6 +67,8 @@ export const ExamControlRoom = ({
   onRetakeQuestion,
   onShowTeamScore,
   onShowLeaderboard,
+  onLeaderboardPrevPage,
+  onLeaderboardNextPage,
   onShowRules,
   onShowTeamList,
   onRevealSolutionOnLed,
@@ -248,6 +252,8 @@ export const ExamControlRoom = ({
             onRetakeQuestion={onRetakeQuestion}
             onShowTeamScore={onShowTeamScore}
             onShowLeaderboard={onShowLeaderboard}
+            onLeaderboardPrevPage={onLeaderboardPrevPage}
+            onLeaderboardNextPage={onLeaderboardNextPage}
             onRevealSolutionOnLed={onRevealSolutionOnLed}
             isLedSolutionRevealed={isLedSolutionRevealed}
           />

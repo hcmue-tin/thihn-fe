@@ -13,6 +13,7 @@ type Props = {
 export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChange }: Props) => {
   const [selectedLeftKey, setSelectedLeftKey] = useState<string>("");
   const [selectedRightKey, setSelectedRightKey] = useState<string>("");
+  const pairPalette = ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
 
   const parsed = useMemo(() => parseMatchingContent(content), [content]);
   const leftItems = useMemo(
@@ -57,9 +58,18 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
       .map((k) => `${k}:${pairs[k]}`)
       .join(";");
   const completedAllPairs = leftKeys.length > 0 && leftKeys.every((k) => !!matchingPairs[k]);
-  const interactionLocked = locked || completedAllPairs;
+  const interactionLocked = locked;
   const usedLeftKeys = new Set(Object.keys(matchingPairs));
   const usedRightKeys = new Set(Object.values(matchingPairs));
+  const leftPairColorMap = new Map<string, string>();
+  const rightPairColorMap = new Map<string, string>();
+  leftKeys.forEach((leftKey, index) => {
+    const rightKey = matchingPairs[leftKey];
+    if (!rightKey) return;
+    const color = pairPalette[index % pairPalette.length];
+    leftPairColorMap.set(leftKey, color);
+    rightPairColorMap.set(rightKey, color);
+  });
 
   const handleLeftSelect = (leftKey: string): void => {
     if (interactionLocked) return;
@@ -136,9 +146,33 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
 
   return (
     <Stack spacing={fluid(0.5, 0.9, 1.25)}>
-      <Typography sx={{ color: "#111827", fontWeight: 500, fontSize: fluidFont.body }}>
-        {completedAllPairs ? "Đã ghép đủ cặp, vui lòng nộp bài." : "Chọn 1 mục ở cột trái và 1 mục ở cột phải để ghép cặp"}
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={fluid(0.5, 0.8, 1.1)}>
+        <Typography sx={{ color: "#111827", fontWeight: 500, fontSize: fluidFont.body }}>
+          {completedAllPairs ? "Đã ghép đủ cặp, bạn có thể nộp bài hoặc reset để làm lại." : "Chọn 1 mục ở cột trái và 1 mục ở cột phải để ghép cặp"}
+        </Typography>
+        <Button
+          variant="outlined"
+          color="inherit"
+          disabled={locked || Object.keys(matchingPairs).length === 0}
+          onClick={() => {
+            onFillTextChange("");
+            setSelectedLeftKey("");
+            setSelectedRightKey("");
+          }}
+          sx={{
+            flexShrink: 0,
+            borderRadius: 2,
+            textTransform: "none",
+            fontWeight: 700,
+            fontSize: fluidFont.body,
+            borderColor: "rgba(17,24,39,0.25)",
+            color: "#111827",
+            "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" }
+          }}
+        >
+          Reset lại
+        </Button>
+      </Stack>
       <Box
         sx={{
           display: "grid",
@@ -160,9 +194,9 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
               sx={{
                 ...pillSx,
                 fontWeight: selectedLeftKey === left.key ? 600 : 500,
-                borderColor: usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)",
-                color: usedLeftKeys.has(left.key) ? "#6B7280" : "#111827",
-                backgroundColor: usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.08)" : "transparent",
+                borderColor: leftPairColorMap.get(left.key) ?? (usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)"),
+                color: leftPairColorMap.get(left.key) ?? (usedLeftKeys.has(left.key) ? "#6B7280" : "#111827"),
+                backgroundColor: leftPairColorMap.get(left.key) ? `${leftPairColorMap.get(left.key)}1F` : usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.08)" : "transparent",
                 "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" },
                 ...(selectedLeftKey === left.key
                   ? {
@@ -181,8 +215,7 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
               }}
             >
               Mục {left.key}
-              {left.text ? `: ${left.text}` : ""}{" "}
-              {matchingPairs[left.key] && <span style={{ marginLeft: "0.5em", fontWeight: 700 }}>→ {matchingPairs[left.key]}</span>}
+              {left.text ? `: ${left.text}` : ""}
             </Button>
           ))}
         </Stack>
@@ -199,9 +232,9 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
               sx={{
                 ...pillSx,
                 fontWeight: selectedRightKey === right.key ? 600 : 500,
-                borderColor: usedRightKeys.has(right.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)",
-                color: usedRightKeys.has(right.key) ? "#6B7280" : "#111827",
-                backgroundColor: usedRightKeys.has(right.key) ? "rgba(107,114,128,0.08)" : "transparent",
+                borderColor: rightPairColorMap.get(right.key) ?? (usedRightKeys.has(right.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)"),
+                color: rightPairColorMap.get(right.key) ?? (usedRightKeys.has(right.key) ? "#6B7280" : "#111827"),
+                backgroundColor: rightPairColorMap.get(right.key) ? `${rightPairColorMap.get(right.key)}1F` : usedRightKeys.has(right.key) ? "rgba(107,114,128,0.08)" : "transparent",
                 "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" },
                 "&.Mui-disabled": {
                   color: "#6B7280",

@@ -645,7 +645,9 @@ export const AdminPage = () => {
           onStopShowAnswer={stopAndAutoNext}
           onRetakeQuestion={() => withAck("Thi lại câu đã chọn", "admin:retake-question", { questionId: selectedQuestionId, activeTeamId })}
           onShowTeamScore={() => withAck("Hiển thị điểm đội", "admin:show-team-score", { examSetId: selectedExamSetId, teamIds: activeTeamId != null ? [activeTeamId] : undefined, activeTeamId })}
-          onShowLeaderboard={() => withAck("Hiển thị bảng xếp hạng", "admin:show-leaderboard", { activeTeamId })}
+          onShowLeaderboard={() => withAck("Hiển thị bảng xếp hạng", "admin:show-leaderboard", { activeTeamId, showAll: true })}
+          onLeaderboardPrevPage={() => withAck("Chuyển trang trước bảng xếp hạng", "admin:leaderboard-page", { direction: "prev" })}
+          onLeaderboardNextPage={() => withAck("Chuyển trang sau bảng xếp hạng", "admin:leaderboard-page", { direction: "next" })}
           onShowRules={() => withAck("Hiển thị thể lệ", "admin:set-screen", { screen: "rules" })}
           onShowTeamList={() => withAck("Hiển thị đội thi", "admin:set-screen", { screen: "team_list", teamIds: activeTeamId != null ? [activeTeamId] : undefined })}
           onRevealSolutionOnLed={revealSolutionOnLed}

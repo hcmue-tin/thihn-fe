@@ -20,6 +20,8 @@ type LiveButtonsProps = {
   onRetakeQuestion: () => void;
   onShowTeamScore: () => void;
   onShowLeaderboard: () => void;
+  onLeaderboardPrevPage: () => void;
+  onLeaderboardNextPage: () => void;
   onRevealSolutionOnLed: () => void;
   isLedSolutionRevealed: boolean;
 };
@@ -38,6 +40,8 @@ export const LiveButtons = ({
   onRetakeQuestion,
   onShowTeamScore,
   onShowLeaderboard,
+  onLeaderboardPrevPage,
+  onLeaderboardNextPage,
   onRevealSolutionOnLed,
   isLedSolutionRevealed
 }: LiveButtonsProps) => (
@@ -103,7 +107,15 @@ export const LiveButtons = ({
       Hiện điểm theo đội
     </Button>
     <Button size="large" variant="outlined" disabled={pendingAction || activeTeamId == null} onClick={onShowLeaderboard}>
-      Hiện bảng xếp hạng
+      Hiển thị bảng xếp hạng
     </Button>
+    <Stack direction="row" spacing={1}>
+      <Button size="large" variant="contained" disabled={screen !== "leaderboard" || pendingAction} onClick={onLeaderboardPrevPage} sx={{ flex: 1 }}>
+        Trang trước
+      </Button>
+      <Button size="large" variant="contained" disabled={screen !== "leaderboard" || pendingAction} onClick={onLeaderboardNextPage} sx={{ flex: 1 }}>
+        Trang sau
+      </Button>
+    </Stack>
   </Stack>
 );

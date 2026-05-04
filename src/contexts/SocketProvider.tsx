@@ -69,6 +69,11 @@ const initialStore: RealtimeStore = {
 
 export const SocketContext = createContext<RealtimeStore>(initialStore);
 
+const toLocalCountdownEnd = (serverEndsAt: number, serverNow?: number): number => {
+  if (!serverNow) return serverEndsAt;
+  return Date.now() + Math.max(0, serverEndsAt - serverNow);
+};
+
 type SocketProviderProps = {
   children: ReactNode;
 };
@@ -108,12 +113,21 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       setStore((prev) => ({ ...prev, isConnected: false }));
     });
 
-    socket.on("contest:sync-state", ({ fullState }: { fullState: ContestState }) => {
+    socket.on("connect_error", (error) => {
+      setStore((prev) => ({ ...prev, isConnected: false }));
+      const message = error instanceof Error ? error.message : "";
+      if (message === "Invalid auth token" || message === "Missing auth token") {
+        window.dispatchEvent(new CustomEvent("app:unauthorized"));
+      }
+    });
+
+    socket.on("contest:sync-state", ({ fullState, serverNow }: { fullState: ContestState; serverNow?: number }) => {
+      const serverEndsAt = fullState.countdownEndAt ? new Date(fullState.countdownEndAt).getTime() : null;
       setStore((prev) => ({
         ...prev,
         fullState,
         screen: fullState.screen,
-        countdownEndsAt: fullState.countdownEndAt ? new Date(fullState.countdownEndAt).getTime() : null,
+        countdownEndsAt: serverEndsAt ? toLocalCountdownEnd(serverEndsAt, serverNow) : null,
         latestAnswerResult: fullState.screen === "idle" ? null : prev.latestAnswerResult,
         ...applyVisualData(fullState, prev)
       }));
@@ -186,10 +200,10 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       setStore((prev) => ({ ...prev, ledSolutionVisible: false }));
     });
 
-    socket.on("countdown:start", ({ endsAt, seconds }: { endsAt: number; seconds: number }) => {
+    socket.on("countdown:start", ({ endsAt, seconds, serverNow }: { endsAt: number; seconds: number; serverNow?: number }) => {
       setStore((prev) => ({
         ...prev,
-        countdownEndsAt: endsAt,
+        countdownEndsAt: toLocalCountdownEnd(endsAt, serverNow),
         countdownSeconds: seconds
       }));
     });
@@ -239,6 +253,11 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       // NAS/reverse-proxy setups may not support websocket upgrade reliably.
       // Keep websocket first, but allow polling fallback.
       transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 3000,
+      timeout: 8000,
       auth: {
         token: auth.token,
         clientType: auth.role === "led" ? "led" : undefined
@@ -256,7 +275,15 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
           resolve({ success: false, message: "Socket not connected" });
           return;
         }
+        let settled = false;
+        const timeoutId = window.setTimeout(() => {
+          settled = true;
+          resolve({ success: false, message: "Mất kết nối máy chủ, vui lòng chờ kết nối lại rồi thử lại" });
+        }, 8000);
         socketRef.current.emit(event, payload, (response: { success: boolean; message?: string }) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timeoutId);
           resolve(response);
         });
       }),

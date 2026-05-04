@@ -12,6 +12,7 @@ export const useCountdownClock = (countdownEndsAt: number | null, countdownSecon
     }
 
     setCountdownStartedAt(Date.now());
+    setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
     let raf = 0;
     const render = () => {
       setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));

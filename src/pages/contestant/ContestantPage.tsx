@@ -19,6 +19,20 @@ type ContestantIdentity = {
   totalScore: number;
 };
 
+type AnswerReceivedPayload = {
+  questionId: number;
+  timestamp?: number;
+  selectedOptionIds?: number[] | null;
+  fillText?: string | null;
+};
+
+type PendingSubmitPayload = {
+  questionId: number;
+  selectedOptionIds?: number[];
+  fillText?: string;
+  createdAt: number;
+};
+
 /*
  * The contestant page is designed as a fit-to-viewport experience — the
  * whole UI must fit on laptops (1366x768), desktops and iPad landscape
@@ -33,6 +47,7 @@ type ContestantIdentity = {
 export const ContestantPage = () => {
   const {
     socket,
+    isConnected,
     screen,
     question,
     options,
@@ -67,6 +82,10 @@ export const ContestantPage = () => {
   const [contestantBackgroundFallback, setContestantBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const autoSubmitTriggeredRef = useRef(false);
+  const pendingRetryKeyRef = useRef<string | null>(null);
+  const currentSessionId = fullState?.currentSessionId ?? 1;
+  const draftKey = question && identity ? `contestantDraft:${identity.id}:${currentSessionId}:${question.id}` : null;
+  const pendingSubmitKey = question && identity ? `contestantPendingSubmit:${identity.id}:${currentSessionId}:${question.id}` : null;
   const passwordInputProps = {
     autoCapitalize: "none" as const,
     autoCorrect: "off" as const,
@@ -106,8 +125,20 @@ export const ContestantPage = () => {
 
   useEffect(() => {
     if (!socket || !question) return;
-    const onAnswerReceived = (payload: { questionId: number }) => {
+    const onAnswerReceived = (payload: AnswerReceivedPayload) => {
       if (payload.questionId !== question.id) return;
+      if (payload.selectedOptionIds) {
+        setSelectedOptionIds(payload.selectedOptionIds);
+      }
+      if (payload.fillText !== undefined && payload.fillText !== null) {
+        setFillText(payload.fillText);
+      }
+      if (draftKey) {
+        localStorage.removeItem(draftKey);
+      }
+      if (pendingSubmitKey) {
+        localStorage.removeItem(pendingSubmitKey);
+      }
       setIsSubmitted(true);
       setLocked(true);
     };
@@ -115,18 +146,54 @@ export const ContestantPage = () => {
     return () => {
       socket.off("contestant:answer-received", onAnswerReceived);
     };
-  }, [socket, question]);
+  }, [draftKey, pendingSubmitKey, socket, question]);
 
   useEffect(() => {
     if (!question) {
       return;
     }
-    setSelectedOptionIds([]);
-    setFillText("");
+    let restoredSelectedOptionIds: number[] = [];
+    let restoredFillText = "";
+    if (draftKey) {
+      try {
+        const rawDraft = localStorage.getItem(draftKey);
+        if (rawDraft) {
+          const parsed = JSON.parse(rawDraft) as { selectedOptionIds?: number[]; fillText?: string };
+          if (Array.isArray(parsed.selectedOptionIds)) {
+            restoredSelectedOptionIds = parsed.selectedOptionIds.map(Number).filter(Number.isFinite);
+          }
+          if (typeof parsed.fillText === "string") {
+            restoredFillText = parsed.fillText;
+          }
+        }
+      } catch {
+        localStorage.removeItem(draftKey);
+      }
+    }
+    setSelectedOptionIds(restoredSelectedOptionIds);
+    setFillText(restoredFillText);
     setIsSubmitted(false);
     setLocked(false);
     autoSubmitTriggeredRef.current = false;
-  }, [question?.id, questionShowSeq]);
+    pendingRetryKeyRef.current = null;
+  }, [draftKey, question?.id, questionShowSeq]);
+
+  useEffect(() => {
+    if (!draftKey || !question || locked || isSubmitted) return;
+    const hasDraft = selectedOptionIds.length > 0 || fillText.trim().length > 0;
+    if (!hasDraft) {
+      localStorage.removeItem(draftKey);
+      return;
+    }
+    localStorage.setItem(
+      draftKey,
+      JSON.stringify({
+        selectedOptionIds,
+        fillText,
+        updatedAt: Date.now()
+      })
+    );
+  }, [draftKey, fillText, isSubmitted, locked, question, selectedOptionIds]);
 
   const { remainingMs, remainingSeconds, progress } = useCountdownClock(countdownEndsAt, countdownSeconds);
 
@@ -157,9 +224,19 @@ export const ContestantPage = () => {
       selectedOptionIds: selectedOptionIds.length > 0 ? selectedOptionIds : undefined,
       fillText: normalizedFillText.length > 0 ? normalizedFillText : undefined
     };
+    if (pendingSubmitKey) {
+      localStorage.setItem(pendingSubmitKey, JSON.stringify({ ...payload, createdAt: Date.now() }));
+    }
     const ack = await emitWithAck("contestant:submit-answer", payload);
     setIsLoading(false);
     if (!ack.success) {
+      const shouldRetry =
+        ack.message === "Socket not connected" ||
+        ack.message?.includes("Mất kết nối") ||
+        ack.message?.toLowerCase().includes("connect");
+      if (!shouldRetry && pendingSubmitKey) {
+        localStorage.removeItem(pendingSubmitKey);
+      }
       if (ack.message === "Submission is not allowed now") {
         return;
       }
@@ -167,11 +244,73 @@ export const ContestantPage = () => {
       setToastOpen(true);
       return;
     }
+    if (draftKey) {
+      localStorage.removeItem(draftKey);
+    }
+    if (pendingSubmitKey) {
+      localStorage.removeItem(pendingSubmitKey);
+    }
     setIsSubmitted(true);
     setLocked(true);
   };
 
   const hasPendingSelection = selectedOptionIds.length > 0 || fillText.trim().length > 0;
+
+  useEffect(() => {
+    if (!isConnected || !pendingSubmitKey || !question || locked || isSubmitted || isLoading) return;
+    if (screen !== "countdown" && screen !== "reveal") return;
+    const rawPending = localStorage.getItem(pendingSubmitKey);
+    if (!rawPending || pendingRetryKeyRef.current === pendingSubmitKey) return;
+
+    let pending: PendingSubmitPayload | null = null;
+    try {
+      pending = JSON.parse(rawPending) as PendingSubmitPayload;
+    } catch {
+      localStorage.removeItem(pendingSubmitKey);
+      return;
+    }
+    if (!pending || pending.questionId !== question.id) {
+      localStorage.removeItem(pendingSubmitKey);
+      return;
+    }
+
+    pendingRetryKeyRef.current = pendingSubmitKey;
+    if (pending.selectedOptionIds) setSelectedOptionIds(pending.selectedOptionIds);
+    if (pending.fillText !== undefined) setFillText(pending.fillText);
+
+    void (async () => {
+      setIsLoading(true);
+      const ack = await emitWithAck("contestant:submit-answer", {
+        questionId: pending.questionId,
+        selectedOptionIds: pending.selectedOptionIds,
+        fillText: pending.fillText
+      });
+      setIsLoading(false);
+
+      if (ack.success) {
+        localStorage.removeItem(pendingSubmitKey);
+        if (draftKey) localStorage.removeItem(draftKey);
+        setIsSubmitted(true);
+        setLocked(true);
+        return;
+      }
+
+      const shouldRetry =
+        ack.message === "Socket not connected" ||
+        ack.message?.includes("Mất kết nối") ||
+        ack.message?.toLowerCase().includes("connect");
+      if (shouldRetry) {
+        pendingRetryKeyRef.current = null;
+        return;
+      }
+
+      localStorage.removeItem(pendingSubmitKey);
+      if (ack.message !== "Submission is not allowed now") {
+        setError(ack.message || "Submit failed");
+        setToastOpen(true);
+      }
+    })();
+  }, [draftKey, emitWithAck, isConnected, isLoading, isSubmitted, locked, pendingSubmitKey, question, screen]);
 
   useEffect(() => {
     if (
@@ -268,7 +407,7 @@ export const ContestantPage = () => {
   const showResult = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && latestAnswerResult;
   const showCorrectAnswer = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && reveal;
   const waitingForCountdown = screen === "question";
-  const canSubmit = !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
+  const canSubmit = isConnected && !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
   const correctAnswerText = useMemo(() => {
     if (!question || !reveal) return "";
     if (question.type === "single_choice" || question.type === "true_false" || question.type === "multiple_choice") {
@@ -472,6 +611,11 @@ export const ContestantPage = () => {
                 {isTeamNotSelected
                   ? "Chưa có đội nào được chọn. Vui lòng chờ đến lượt đội của bạn."
                   : "Bạn không thuộc đội đang thi. Vui lòng chờ đến lượt đội của bạn."}
+              </Alert>
+            )}
+            {!isConnected && (
+              <Alert severity="warning" sx={{ borderRadius: 3, fontSize: fluidFont.body }}>
+                Mat ket noi may chu. Dap an dang chon da duoc luu tam, vui long cho tu ket noi lai.
               </Alert>
             )}
             {!shouldBlockInteraction && showWaiting && (

@@ -16,6 +16,7 @@ export type ContestState = {
   screen: ContestScreen;
   currentExamSetId: number | null;
   currentQuestionId: number | null;
+  currentSessionId: number;
   isCountdownActive: boolean;
   countdownEndAt: string | null;
   rulesContent?: string | null;
@@ -90,6 +91,7 @@ export type AnswerResultsPayload = {
 };
 
 export type LeaderboardPayload = {
+  showAll?: boolean;
   rankings: Array<{
     rank: number;
     contestantId?: number;

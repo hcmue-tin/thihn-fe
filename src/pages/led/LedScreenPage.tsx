@@ -54,6 +54,7 @@ const OptionCard = styled(GlassCard, {
 export const LedScreenPage = () => {
   const [ledBackgroundFallback, setLedBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
+  const [leaderboardPageIndex, setLeaderboardPageIndex] = useState(0);
   const {
     socket,
     screen,
@@ -102,12 +103,65 @@ export const LedScreenPage = () => {
     };
   }, []);
 
-  const { remainingMs, remainingSeconds } = useCountdownClock(countdownEndsAt, countdownSeconds);
-  // Keep LED countdown from visually running ahead of contestant clients
-  // when render/network timing differs slightly between devices.
-  const syncedLedSeconds =
-    screen === "countdown" ? Math.max(0, Math.ceil((remainingMs + 250) / 1000)) : remainingSeconds;
+  const { remainingSeconds } = useCountdownClock(countdownEndsAt, countdownSeconds);
   const { ledAudioRef } = useLedAudioSync(socket, question?.audioUrl);
+  const flattenedTeamContestants = useMemo(() => {
+    const rows =
+      teamList?.teams.flatMap((team) =>
+        team.contestants.map((contestant) => ({
+          id: contestant.id,
+          name: contestant.name,
+          unit: contestant.unit?.trim() || "Chưa có đơn vị",
+          teamName: team.name
+        }))
+      ) ?? [];
+
+    rows.sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    return rows;
+  }, [teamList]);
+  const flattenedTeamScores = useMemo(() => {
+    const rows =
+      teamScore?.teams.flatMap((team) =>
+        (team.contestants ?? []).map((contestant) => ({
+          key: `${team.name}-${contestant.contestantId ?? contestant.name}`,
+          teamName: team.name,
+          contestantName: contestant.name,
+          score: contestant.score ?? 0
+        }))
+      ) ?? [];
+
+    rows.sort((a, b) => a.contestantName.localeCompare(b.contestantName, "vi"));
+    return rows;
+  }, [teamScore]);
+  const leaderboardTopFive = useMemo(() => leaderboard?.rankings?.slice(0, 5) ?? [], [leaderboard]);
+  const leaderboardRowsPerPage = 6;
+  const leaderboardPages = useMemo(() => {
+    const rows = leaderboard?.rankings?.slice(5) ?? [];
+    const pages = [];
+    for (let index = 0; index < rows.length; index += leaderboardRowsPerPage) {
+      pages.push(rows.slice(index, index + leaderboardRowsPerPage));
+    }
+    return pages;
+  }, [leaderboard]);
+  const currentLeaderboardPage = leaderboardPages[leaderboardPageIndex] ?? leaderboardPages[0] ?? [];
+
+  useEffect(() => {
+    setLeaderboardPageIndex(0);
+  }, [leaderboard?.rankings]);
+
+  useEffect(() => {
+    if (!socket) return undefined;
+    const handleLeaderboardPage = ({ direction }: { direction: "next" | "prev" }) => {
+      setLeaderboardPageIndex((prev) => {
+        const total = Math.max(leaderboardPages.length, 1);
+        return direction === "prev" ? (prev - 1 + total) % total : (prev + 1) % total;
+      });
+    };
+    socket.on("leaderboard:page", handleLeaderboardPage);
+    return () => {
+      socket.off("leaderboard:page", handleLeaderboardPage);
+    };
+  }, [leaderboardPages.length, socket]);
 
   const revealDetailText = useMemo(() => {
     if (!question || !reveal) return [];
@@ -286,7 +340,7 @@ export const LedScreenPage = () => {
                   lineHeight: 1
                 }}
               >
-                {screen === "countdown" ? syncedLedSeconds : "—"}
+                {screen === "countdown" ? remainingSeconds : "—"}
               </Typography>
             </Box>
           )}
@@ -327,16 +381,19 @@ export const LedScreenPage = () => {
                 {screen === "reveal" && answerResults ? (
                   answerResults.results.map((row) => {
                     const contestantName = (row.contestantName || "").trim();
-                    const answerSummary = (row.answerSummary || "").trim();
+                    const answerSummaryRaw = (row.answerSummary || "").trim();
+                    const answerSummary = answerSummaryRaw.length > 0 ? answerSummaryRaw : "-";
                     const isPairAnswer = /\d+\s*[:.]\s*[A-Za-z]/.test(answerSummary);
-                    const isShortTokenAnswer = /^[A-Za-z]{1,8}$/.test(answerSummary);
+                    const isShortTokenAnswer = /^([A-Za-z]{1,8}|-)$/.test(answerSummary);
                     // Auto layout rule:
                     // - keep inline only when both name and answer are short
                     // - force new line for matching-style answers (1:A;2:B;...)
                     // - force new line when contestant name is long
                     const hasLongName = contestantName.length > 26;
                     const shouldInlineSummary =
-                      answerSummary.length > 0 && !isPairAnswer && isShortTokenAnswer && !hasLongName;
+                      answerSummary === "-" || (answerSummary.length > 0 && !isPairAnswer && isShortTokenAnswer && !hasLongName);
+                    const isCorrectAnswer = ledSolutionVisible && row.isCorrect === true;
+                    const isWrongAnswer = ledSolutionVisible && row.isCorrect === false;
 
                     return (
                       <Box
@@ -349,8 +406,16 @@ export const LedScreenPage = () => {
                           px: fluid(0.6, 0.9, 1.2),
                           py: fluid(0.5, 0.75, 1),
                           borderRadius: 2.5,
-                          background: "rgba(255,255,255,0.56)",
-                          border: "1px solid rgba(111, 165, 207, 0.18)"
+                          background: isCorrectAnswer
+                            ? "rgba(34, 197, 94, 0.2)"
+                            : isWrongAnswer
+                              ? "rgba(239, 68, 68, 0.2)"
+                              : "rgba(255,255,255,0.56)",
+                          border: isCorrectAnswer
+                            ? "1px solid rgba(22, 163, 74, 0.55)"
+                            : isWrongAnswer
+                              ? "1px solid rgba(220, 38, 38, 0.55)"
+                              : "1px solid rgba(111, 165, 207, 0.18)"
                         }}
                       >
                         <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1 }}>
@@ -772,48 +837,125 @@ export const LedScreenPage = () => {
           <Box
             sx={{
               width: "100%",
-              maxWidth: "min(96vw, 90rem)",
+              maxWidth: "min(96vw, 108rem)",
               mx: "auto",
-              display: "grid",
-              gap: fluid(0.75, 1.2, 1.75),
-              gridTemplateColumns: "repeat(auto-fit, minmax(min(22rem, 100%), 1fr))",
-              overflow: "auto",
-              minHeight: 0
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
             }}
           >
-            {teamList.teams.map((team) => (
-              <GlassCard key={team.id} sx={{ p: fluid(1, 1.6, 2.25), borderRadius: fluid(0.75, 1.2, 1.5) }}>
-                <Typography
-                  component="div"
-                  sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: fluidFont.h5, textAlign: "center" }}
+            <GlassCard
+              sx={{
+                p: fluid(1, 1.6, 2.25),
+                borderRadius: fluid(0.75, 1.2, 1.5),
+                minHeight: 0,
+                flex: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column"
+              }}
+            >
+              <Typography
+                component="div"
+                sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: fluidFont.h4, textAlign: "center" }}
+              >
+                Danh sách đội thi
+              </Typography>
+
+              {flattenedTeamContestants.length > 0 ? (
+                <Box
+                  sx={{
+                    mt: fluid(0.75, 1.2, 1.6),
+                    position: "relative",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    columnGap: fluid(1.2, 2.2, 3.2),
+                    minHeight: 0,
+                    height: "100%",
+                    overflow: "hidden"
+                  }}
                 >
-                  {team.name.toLowerCase().startsWith("đội") ? team.name : `Đội ${team.name}`}
-                </Typography>
-                <Box sx={{ mt: fluid(0.5, 0.9, 1.25), display: "grid", gap: fluid(0.4, 0.6, 0.9) }}>
-                  {team.contestants.length > 0 ? (
-                    team.contestants.map((contestant) => (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "2px",
+                      borderRadius: "999px",
+                      background: "linear-gradient(180deg, rgba(15,107,109,0.15), rgba(15,107,109,0.55), rgba(15,107,109,0.15))",
+                      pointerEvents: "none"
+                    }}
+                  />
+                  {[0, 1].map((colIndex) => {
+                    const half = Math.ceil(flattenedTeamContestants.length / 2);
+                    const colRows =
+                      colIndex === 0
+                        ? flattenedTeamContestants.slice(0, half)
+                        : flattenedTeamContestants.slice(half);
+                    return (
                       <Box
-                        key={contestant.id}
+                        key={`team-list-col-${colIndex}`}
                         sx={{
-                          p: fluid(0.6, 0.9, 1.2),
-                          borderRadius: 2.5,
-                          background: "rgba(255,255,255,0.52)",
-                          border: "1px solid rgba(111, 165, 207, 0.18)"
+                          minHeight: 0,
+                          display: "grid",
+                          gap: fluid(0.35, 0.55, 0.8),
+                          alignContent: "start",
+                          overflow: "auto",
+                          pr: colIndex === 0 ? fluid(0.35, 0.75, 1.1) : 0,
+                          pl: colIndex === 1 ? fluid(0.35, 0.75, 1.1) : 0
                         }}
                       >
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.subtitle }}>
-                          {contestant.name}
-                        </Typography>
+                        {colRows.map((row) => (
+                          <Box
+                            key={row.id}
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
+                              alignItems: "center",
+                              gap: fluid(0.5, 0.9, 1.4),
+                              p: fluid(0.5, 0.8, 1.1),
+                              borderRadius: 2.5,
+                              background: "rgba(255,255,255,0.52)",
+                              border: "1px solid rgba(111, 165, 207, 0.18)"
+                            }}
+                          >
+                            <Typography
+                              component="div"
+                              sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.subtitle, minWidth: 0 }}
+                              noWrap
+                              title={row.name}
+                            >
+                              {row.name}
+                            </Typography>
+                            <Typography
+                              component="div"
+                              sx={{
+                                fontWeight: 700,
+                                color: "#2A5A78",
+                                fontSize: fluidFont.body,
+                                minWidth: 0,
+                                textAlign: "right"
+                              }}
+                              noWrap
+                              title={row.unit}
+                            >
+                              {row.unit}
+                            </Typography>
+                          </Box>
+                        ))}
                       </Box>
-                    ))
-                  ) : (
-                    <Typography component="div" sx={{ color: "#4b647c", fontSize: fluidFont.body }}>
-                      Chưa có thí sinh trong đội này
-                    </Typography>
-                  )}
+                    );
+                  })}
                 </Box>
-              </GlassCard>
-            ))}
+              ) : (
+                <Typography component="div" sx={{ mt: fluid(1, 1.5, 2), color: "#4b647c", fontSize: fluidFont.body }}>
+                  Chưa có thí sinh trong đội nào
+                </Typography>
+              )}
+            </GlassCard>
           </Box>
         )}
 
@@ -821,55 +963,332 @@ export const LedScreenPage = () => {
           <Box
             sx={{
               width: "100%",
-              maxWidth: "min(90vw, 80rem)",
+              maxWidth: "min(96vw, 108rem)",
               mx: "auto",
+              minHeight: 0,
               display: "flex",
               flexDirection: "column",
-              gap: fluid(0.4, 0.8, 1.1),
-              overflow: "auto",
-              minHeight: 0
+              overflow: "hidden"
             }}
           >
-            {teamScore?.teams?.map((team) => (
-              <GlassCard key={team.name} sx={{ p: fluid(0.75, 1.3, 1.8), borderRadius: fluid(0.75, 1.2, 1.5) }}>
-                <Typography
-                  component="div"
-                  sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.h5, textAlign: "center" }}
+            <GlassCard
+              sx={{
+                p: fluid(1, 1.6, 2.25),
+                borderRadius: fluid(0.75, 1.2, 1.5),
+                minHeight: 0,
+                flex: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column"
+              }}
+            >
+              <Typography
+                component="div"
+                sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: fluidFont.h4, textAlign: "center" }}
+              >
+                {teamScore?.teams && teamScore.teams.length === 1
+                  ? `Điểm ${
+                      teamScore.teams[0].name.toLowerCase().startsWith("đội")
+                        ? teamScore.teams[0].name
+                        : `Đội ${teamScore.teams[0].name}`
+                    }`
+                  : "Điểm theo đội"}
+              </Typography>
+
+              {flattenedTeamScores.length > 0 ? (
+                <Box
+                  sx={{
+                    mt: fluid(0.75, 1.2, 1.6),
+                    position: "relative",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    columnGap: fluid(1.2, 2.2, 3.2),
+                    minHeight: 0,
+                    overflow: "hidden",
+                    flex: 1
+                  }}
                 >
-                  {team.name.toLowerCase().startsWith("đội") ? team.name : `Đội ${team.name}`}
-                  {` - ${team.totalScore ?? 0} điểm`}
-                </Typography>
-                {team.contestants && team.contestants.length > 0 && (
-                  <Box sx={{ mt: fluid(0.5, 0.9, 1.25), display: "grid", gap: fluid(0.4, 0.6, 0.9) }}>
-                    {team.contestants.map((contestant) => (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "2px",
+                      borderRadius: "999px",
+                      background: "linear-gradient(180deg, rgba(15,107,109,0.15), rgba(15,107,109,0.55), rgba(15,107,109,0.15))",
+                      pointerEvents: "none"
+                    }}
+                  />
+                  {[0, 1].map((colIndex) => {
+                    const half = Math.ceil(flattenedTeamScores.length / 2);
+                    const colRows =
+                      colIndex === 0
+                        ? flattenedTeamScores.slice(0, half)
+                        : flattenedTeamScores.slice(half);
+                    return (
                       <Box
-                        key={`${team.name}-${contestant.contestantId ?? contestant.name}`}
+                        key={`team-score-col-${colIndex}`}
                         sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: fluid(0.4, 0.6, 0.9),
-                          p: fluid(0.5, 0.8, 1.1),
-                          borderRadius: 2.5,
-                          background: "rgba(255,255,255,0.52)",
-                          border: "1px solid rgba(111, 165, 207, 0.18)"
+                          minHeight: 0,
+                          display: "grid",
+                          gap: fluid(0.35, 0.55, 0.8),
+                          alignContent: "start",
+                          overflow: "auto",
+                          pr: colIndex === 0 ? fluid(0.35, 0.75, 1.1) : 0,
+                          pl: colIndex === 1 ? fluid(0.35, 0.75, 1.1) : 0
                         }}
                       >
-                        <Typography component="div" sx={{ fontWeight: 700, color: "#17324d", fontSize: fluidFont.body }}>
-                          {contestant.name}
-                        </Typography>
-                        <Typography component="div" sx={{ fontWeight: 800, color: "#11416f", fontSize: fluidFont.body }}>
-                          {`${contestant.score ?? 0} điểm`}
-                        </Typography>
+                        {colRows.map((row) => (
+                          <Box
+                            key={row.key}
+                            sx={{
+                              p: fluid(0.5, 0.8, 1.1),
+                              borderRadius: 2.5,
+                              background: "rgba(255,255,255,0.52)",
+                              border: "1px solid rgba(111, 165, 207, 0.18)",
+                              display: "grid",
+                              gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
+                              alignItems: "center",
+                              gap: fluid(0.5, 0.9, 1.4)
+                            }}
+                          >
+                            <Typography
+                              component="div"
+                              sx={{ fontWeight: 800, color: "#17324d", fontSize: fluidFont.subtitle, minWidth: 0 }}
+                              noWrap
+                              title={row.contestantName}
+                            >
+                              {row.contestantName}
+                            </Typography>
+                            <Typography
+                              component="div"
+                              sx={{ fontWeight: 800, color: "#11416f", fontSize: fluidFont.body, textAlign: "right", flexShrink: 0 }}
+                            >
+                              {`${row.score} điểm`}
+                            </Typography>
+                          </Box>
+                        ))}
                       </Box>
-                    ))}
-                  </Box>
-                )}
-              </GlassCard>
-            ))}
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Typography component="div" sx={{ mt: fluid(1, 1.5, 2), color: "#4b647c", fontSize: fluidFont.body }}>
+                  Chưa có dữ liệu điểm theo đội
+                </Typography>
+              )}
+            </GlassCard>
           </Box>
         )}
 
         {screen === "leaderboard" && (
+          <Box
+            sx={{
+              width: "100%",
+              maxWidth: "min(96vw, 112rem)",
+              mx: "auto",
+              minHeight: 0,
+              display: "grid",
+              gridTemplateRows: "minmax(0, 1fr)",
+              gap: fluid(0.75, 1.2, 1.8),
+              overflow: "hidden"
+            }}
+          >
+            <GlassCard sx={{ minHeight: 0, overflow: "hidden", p: fluid(0.75, 1.2, 1.6), display: "flex", flexDirection: "column", gap: fluid(0.5, 0.8, 1.1) }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
+                <Typography component="div" sx={{ fontWeight: 900, color: "#0F6B6D", fontSize: fluidFont.h6 }}>
+                  Bảng xếp hạng
+                </Typography>
+                {leaderboardPages.length > 1 && (
+                  <Typography component="div" sx={{ color: "#4A7A8A", fontWeight: 800, fontSize: fluidFont.body }}>
+                    {`Trang ${leaderboardPageIndex + 1}/${leaderboardPages.length}`}
+                  </Typography>
+                )}
+              </Box>
+
+              {leaderboardTopFive.length > 0 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: fluid(0.28, 0.45, 0.65),
+                    flexShrink: 0
+                  }}
+                >
+                  {[
+                    leaderboardTopFive.filter((item) => item.rank === 1),
+                    leaderboardTopFive.filter((item) => item.rank === 2 || item.rank === 3),
+                    leaderboardTopFive.filter((item) => item.rank === 4 || item.rank === 5)
+                  ].map((row, rowIndex) => (
+                    <Box
+                      key={`leaderboard-top-row-${rowIndex}`}
+                      sx={{
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: fluid(0.45, 0.7, 0.95)
+                      }}
+                    >
+                  {row.map((item) => {
+                    const topStyles: Record<number, { border: string; background: string; badge: string; shadow: string }> = {
+                      1: {
+                        border: "2px solid #D4A741",
+                        background: "linear-gradient(135deg, rgba(245,217,138,0.46), rgba(255,255,255,0.9))",
+                        badge: "linear-gradient(135deg, #D4A741, #F5D98A)",
+                        shadow: "0 14px 30px rgba(212,167,65,0.22)"
+                      },
+                      2: {
+                        border: "2px solid #94A3B8",
+                        background: "linear-gradient(135deg, rgba(203,213,225,0.42), rgba(255,255,255,0.88))",
+                        badge: "linear-gradient(135deg, #64748B, #CBD5E1)",
+                        shadow: "0 12px 26px rgba(100,116,139,0.18)"
+                      },
+                      3: {
+                        border: "2px solid #B45309",
+                        background: "linear-gradient(135deg, rgba(217,119,6,0.3), rgba(255,255,255,0.88))",
+                        badge: "linear-gradient(135deg, #B45309, #F59E0B)",
+                        shadow: "0 12px 26px rgba(180,83,9,0.16)"
+                      },
+                      4: {
+                        border: "2px solid rgba(26,140,142,0.55)",
+                        background: "linear-gradient(135deg, rgba(26,140,142,0.18), rgba(255,255,255,0.84))",
+                        badge: "linear-gradient(135deg, #1A8C8E, #0F6B6D)",
+                        shadow: "0 10px 22px rgba(26,140,142,0.12)"
+                      },
+                      5: {
+                        border: "2px solid rgba(17,65,111,0.46)",
+                        background: "linear-gradient(135deg, rgba(17,65,111,0.16), rgba(255,255,255,0.84))",
+                        badge: "linear-gradient(135deg, #11416F, #2A5A78)",
+                        shadow: "0 10px 22px rgba(17,65,111,0.12)"
+                      }
+                    };
+                    const style = topStyles[item.rank] ?? topStyles[5];
+                    const isFirst = item.rank === 1;
+
+                    return (
+                      <Box
+                        key={`leaderboard-top-${item.rank}-${item.name}`}
+                        sx={{
+                          width: isFirst ? "min(36rem, 42%)" : "min(30rem, 32%)",
+                          minWidth: 0,
+                          display: "grid",
+                          gridTemplateColumns: "auto minmax(0, 1fr) auto",
+                          alignItems: "center",
+                          gap: fluid(0.45, 0.75, 1),
+                          px: fluid(0.6, 0.85, 1.05),
+                          py: fluid(0.35, 0.55, 0.75),
+                          borderRadius: 2.5,
+                          background: style.background,
+                          border: style.border,
+                          boxShadow: style.shadow
+                        }}
+                      >
+                        <Box sx={{ width: fluid(1.9, 2.45, 2.7), height: fluid(1.9, 2.45, 2.7), borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 950, background: style.badge, fontSize: fluidFont.body }}>
+                          {item.rank}
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography component="div" sx={{ fontWeight: 950, color: "#17324d", fontSize: fluidFont.body, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.name}>
+                            {item.name}
+                          </Typography>
+                          <Typography component="div" sx={{ color: "#2A5A78", fontWeight: 800, fontSize: fluidFont.caption, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {item.team ?? "Chua co doi"}
+                          </Typography>
+                        </Box>
+                        <Typography component="div" sx={{ fontWeight: 950, color: "#0F6B6D", fontSize: fluidFont.body, whiteSpace: "nowrap" }}>
+                          {`${item.totalScore ?? 0} diem`}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+              <Box sx={{ minHeight: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: fluid(0.4, 0.7, 1), overflow: "hidden" }}>
+                {currentLeaderboardPage.map((item) => {
+                  const topStyles: Record<number, { border: string; background: string; badge: string; shadow: string }> = {
+                    1: {
+                      border: "2px solid #D4A741",
+                      background: "linear-gradient(135deg, rgba(245,217,138,0.42), rgba(255,255,255,0.88))",
+                      badge: "linear-gradient(135deg, #D4A741, #F5D98A)",
+                      shadow: "0 14px 30px rgba(212,167,65,0.22)"
+                    },
+                    2: {
+                      border: "2px solid #94A3B8",
+                      background: "linear-gradient(135deg, rgba(203,213,225,0.42), rgba(255,255,255,0.86))",
+                      badge: "linear-gradient(135deg, #64748B, #CBD5E1)",
+                      shadow: "0 12px 26px rgba(100,116,139,0.18)"
+                    },
+                    3: {
+                      border: "2px solid #B45309",
+                      background: "linear-gradient(135deg, rgba(217,119,6,0.28), rgba(255,255,255,0.86))",
+                      badge: "linear-gradient(135deg, #B45309, #F59E0B)",
+                      shadow: "0 12px 26px rgba(180,83,9,0.16)"
+                    },
+                    4: {
+                      border: "2px solid rgba(26,140,142,0.55)",
+                      background: "linear-gradient(135deg, rgba(26,140,142,0.18), rgba(255,255,255,0.82))",
+                      badge: "linear-gradient(135deg, #1A8C8E, #0F6B6D)",
+                      shadow: "0 10px 22px rgba(26,140,142,0.12)"
+                    },
+                    5: {
+                      border: "2px solid rgba(17,65,111,0.46)",
+                      background: "linear-gradient(135deg, rgba(17,65,111,0.16), rgba(255,255,255,0.82))",
+                      badge: "linear-gradient(135deg, #11416F, #2A5A78)",
+                      shadow: "0 10px 22px rgba(17,65,111,0.12)"
+                    }
+                  };
+                  const style = topStyles[item.rank];
+                  const isTopFive = item.rank <= 5;
+
+                  return (
+                    <Box
+                      key={`leaderboard-page-${item.rank}-${item.name}`}
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "auto minmax(0, 1fr) auto",
+                        alignItems: "center",
+                        gap: fluid(0.5, 0.8, 1.1),
+                        px: isTopFive ? fluid(0.75, 1.05, 1.35) : fluid(0.6, 0.9, 1.2),
+                        py: isTopFive ? fluid(0.6, 0.85, 1.05) : fluid(0.45, 0.7, 0.9),
+                        borderRadius: 2.5,
+                        background: style?.background ?? "rgba(255,255,255,0.58)",
+                        border: style?.border ?? "1px solid rgba(111, 165, 207, 0.18)",
+                        boxShadow: style?.shadow ?? "none"
+                      }}
+                    >
+                      <Box sx={{ width: isTopFive ? fluid(2.2, 3, 3.2) : fluid(1.9, 2.6, 2.8), height: isTopFive ? fluid(2.2, 3, 3.2) : fluid(1.9, 2.6, 2.8), borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, background: style?.badge ?? "linear-gradient(135deg, #1A8C8E, #0F6B6D)", fontSize: isTopFive ? fluidFont.subtitle : fluidFont.body }}>
+                        {item.rank}
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography component="div" sx={{ fontWeight: isTopFive ? 950 : 850, color: "#17324d", fontSize: isTopFive ? fluidFont.h6 : fluidFont.subtitle, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.name}>
+                          {item.name}
+                        </Typography>
+                        <Typography component="div" sx={{ color: isTopFive ? "#2A5A78" : "#4A7A8A", fontWeight: isTopFive ? 800 : 400, fontSize: fluidFont.body, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {item.team ?? "Chua co doi"}
+                        </Typography>
+                      </Box>
+                      <Typography component="div" sx={{ fontWeight: 950, color: isTopFive ? "#0F6B6D" : "#11416f", fontSize: isTopFive ? fluidFont.subtitle : fluidFont.body, whiteSpace: "nowrap" }}>
+                        {`${item.totalScore ?? 0} diem`}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+                {(leaderboard?.rankings?.length ?? 0) === 0 && (
+                  <Typography component="div" sx={{ color: "#4b647c", fontSize: fluidFont.body }}>
+                    Chưa có dữ liệu bảng xếp hạng
+                  </Typography>
+                )}
+              </Box>
+            </GlassCard>
+          </Box>
+        )}
+
+        {false && screen === "leaderboard" && (
           <Box
             sx={{
               width: "100%",
