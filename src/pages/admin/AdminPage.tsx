@@ -85,8 +85,10 @@ export const AdminPage = () => {
   } = useQuestionEditorState();
   const [rulesDraft, setRulesDraft] = useState("");
   const [ledBackgroundDraft, setLedBackgroundDraft] = useState("");
+  const [ledWaitingBackgroundDraft, setLedWaitingBackgroundDraft] = useState("");
   const [contestantBackgroundDraft, setContestantBackgroundDraft] = useState("");
   const [isUploadingLedBg, setIsUploadingLedBg] = useState(false);
+  const [isUploadingLedWaitingBg, setIsUploadingLedWaitingBg] = useState(false);
   const [isUploadingContestantBg, setIsUploadingContestantBg] = useState(false);
   const [isUploadingEditQuestionImage, setIsUploadingEditQuestionImage] = useState(false);
   const [isUploadingEditQuestionAudio, setIsUploadingEditQuestionAudio] = useState(false);
@@ -144,6 +146,7 @@ export const AdminPage = () => {
       const d = rulesRes.value.data.data;
       setRulesDraft(d?.rulesContent ?? "");
       setLedBackgroundDraft(d?.ledBackgroundUrl ?? d?.backgroundUrl ?? "");
+      setLedWaitingBackgroundDraft(d?.ledWaitingBackgroundUrl ?? "");
       setContestantBackgroundDraft(d?.contestantBackgroundUrl ?? d?.backgroundUrl ?? "");
     } else {
       setRulesDraft("");
@@ -183,6 +186,7 @@ export const AdminPage = () => {
       const d = res.data.data;
       setRulesDraft(d?.rulesContent ?? "");
       setLedBackgroundDraft(d?.ledBackgroundUrl ?? d?.backgroundUrl ?? "");
+      setLedWaitingBackgroundDraft(d?.ledWaitingBackgroundUrl ?? "");
       setContestantBackgroundDraft(d?.contestantBackgroundUrl ?? d?.backgroundUrl ?? "");
     } catch {
       setRulesDraft("");
@@ -203,6 +207,7 @@ export const AdminPage = () => {
         {
           rulesContent: rulesDraft,
           ledBackgroundUrl: ledBackgroundDraft.trim() || null,
+          ledWaitingBackgroundUrl: ledWaitingBackgroundDraft.trim() || null,
           contestantBackgroundUrl: contestantBackgroundDraft.trim() || null
         },
         { headers: { Authorization: `Bearer ${adminToken}` } }
@@ -266,10 +271,11 @@ export const AdminPage = () => {
     setToast({ open: true, message: "Đã cập nhật bộ đề" });
   };
 
-  const uploadFile = async (file: File, kind: "led-bg" | "contestant-bg" | "question-image" | "question-audio"): Promise<void> => {
+  const uploadFile = async (file: File, kind: "led-bg" | "led-waiting-bg" | "contestant-bg" | "question-image" | "question-audio"): Promise<void> => {
     const formData = new FormData();
     formData.append("file", file);
     if (kind === "led-bg") setIsUploadingLedBg(true);
+    if (kind === "led-waiting-bg") setIsUploadingLedWaitingBg(true);
     if (kind === "contestant-bg") setIsUploadingContestantBg(true);
     if (kind === "question-image") setIsUploadingEditQuestionImage(true);
     if (kind === "question-audio") setIsUploadingEditQuestionAudio(true);
@@ -283,12 +289,14 @@ export const AdminPage = () => {
       });
       const fileUrl = res.data?.data?.fileUrl as string;
       if (kind === "led-bg") setLedBackgroundDraft(fileUrl);
+      if (kind === "led-waiting-bg") setLedWaitingBackgroundDraft(fileUrl);
       if (kind === "contestant-bg") setContestantBackgroundDraft(fileUrl);
       if (kind === "question-image") setEditQuestionImageUrl(fileUrl);
       if (kind === "question-audio") setEditQuestionAudioUrl(fileUrl);
       toastApp("Tải tệp lên thành công", "success");
     } finally {
       if (kind === "led-bg") setIsUploadingLedBg(false);
+      if (kind === "led-waiting-bg") setIsUploadingLedWaitingBg(false);
       if (kind === "contestant-bg") setIsUploadingContestantBg(false);
       if (kind === "question-image") setIsUploadingEditQuestionImage(false);
       if (kind === "question-audio") setIsUploadingEditQuestionAudio(false);
@@ -587,11 +595,14 @@ export const AdminPage = () => {
       return (
         <BackgroundsSection
           ledBackgroundDraft={ledBackgroundDraft}
+          ledWaitingBackgroundDraft={ledWaitingBackgroundDraft}
           contestantBackgroundDraft={contestantBackgroundDraft}
           isUploadingLedBg={isUploadingLedBg}
+          isUploadingLedWaitingBg={isUploadingLedWaitingBg}
           isUploadingContestantBg={isUploadingContestantBg}
           isSavingRules={isSavingRules}
           onUploadLedBackground={(file) => uploadFile(file, "led-bg")}
+          onUploadLedWaitingBackground={(file) => uploadFile(file, "led-waiting-bg")}
           onUploadContestantBackground={(file) => uploadFile(file, "contestant-bg")}
           onSaveBackgrounds={async () => {
             await saveDisplayConfig("Đã lưu hình nền");

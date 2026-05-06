@@ -22,6 +22,7 @@ export type ContestState = {
   rulesContent?: string | null;
   backgroundUrl?: string | null;
   ledBackgroundUrl?: string | null;
+  ledWaitingBackgroundUrl?: string | null;
   contestantBackgroundUrl?: string | null;
   activeTeamId?: number | null;
   version: number;

@@ -26,6 +26,7 @@ type RealtimeStore = {
   rulesContent: string | null;
   backgroundUrl: string | null;
   ledBackgroundUrl: string | null;
+  ledWaitingBackgroundUrl: string | null;
   contestantBackgroundUrl: string | null;
   questionShowSeq: number;
   ledSolutionVisible: boolean;
@@ -53,6 +54,7 @@ const initialStore: RealtimeStore = {
   rulesContent: null,
   backgroundUrl: null,
   ledBackgroundUrl: null,
+  ledWaitingBackgroundUrl: null,
   contestantBackgroundUrl: null,
   questionShowSeq: 0,
   ledSolutionVisible: false,
@@ -86,6 +88,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
       rulesContent?: string | null;
       backgroundUrl?: string | null;
       ledBackgroundUrl?: string | null;
+      ledWaitingBackgroundUrl?: string | null;
       contestantBackgroundUrl?: string | null;
     },
     prev: RealtimeStore
@@ -93,6 +96,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     rulesContent: source.rulesContent ?? prev.rulesContent,
     backgroundUrl: source.backgroundUrl ?? prev.backgroundUrl,
     ledBackgroundUrl: source.ledBackgroundUrl ?? source.backgroundUrl ?? prev.ledBackgroundUrl,
+    ledWaitingBackgroundUrl: source.ledWaitingBackgroundUrl !== undefined ? source.ledWaitingBackgroundUrl : prev.ledWaitingBackgroundUrl,
     contestantBackgroundUrl: source.contestantBackgroundUrl ?? source.backgroundUrl ?? prev.contestantBackgroundUrl
   });
 
@@ -159,6 +163,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
                 rulesContent: data?.rulesContent ?? prev.fullState.rulesContent,
                 backgroundUrl: data?.backgroundUrl ?? prev.fullState.backgroundUrl,
                 ledBackgroundUrl: data?.ledBackgroundUrl ?? data?.backgroundUrl ?? prev.fullState.ledBackgroundUrl,
+                ledWaitingBackgroundUrl: data?.ledWaitingBackgroundUrl !== undefined ? data.ledWaitingBackgroundUrl : prev.fullState.ledWaitingBackgroundUrl,
                 contestantBackgroundUrl: data?.contestantBackgroundUrl ?? data?.backgroundUrl ?? prev.fullState.contestantBackgroundUrl
               }
             : prev.fullState

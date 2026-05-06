@@ -53,6 +53,7 @@ const OptionCard = styled(GlassCard, {
 
 export const LedScreenPage = () => {
   const [ledBackgroundFallback, setLedBackgroundFallback] = useState<string | null>(null);
+  const [ledWaitingBackgroundFallback, setLedWaitingBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const [leaderboardPageIndex, setLeaderboardPageIndex] = useState(0);
   const {
@@ -65,6 +66,7 @@ export const LedScreenPage = () => {
     rulesContent,
     backgroundUrl,
     ledBackgroundUrl,
+    ledWaitingBackgroundUrl,
     reveal,
     ledSolutionVisible,
     teamList,
@@ -94,8 +96,9 @@ export const LedScreenPage = () => {
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (!mounted || !json?.data) return;
-        const data = json.data as { ledBackgroundUrl?: string | null; backgroundUrl?: string | null };
+        const data = json.data as { ledBackgroundUrl?: string | null; ledWaitingBackgroundUrl?: string | null; backgroundUrl?: string | null };
         setLedBackgroundFallback(data.ledBackgroundUrl ?? data.backgroundUrl ?? null);
+        setLedWaitingBackgroundFallback(data.ledWaitingBackgroundUrl ?? null);
       })
       .catch(() => undefined);
     return () => {
@@ -226,10 +229,16 @@ export const LedScreenPage = () => {
       .map((item, idx) => ({ ...item, color: palette[idx % palette.length] }));
   }, [matchingColumns.left, matchingColumns.right, question?.type, reveal]);
 
-  const ledBg =
-    (ledBackgroundUrl && ledBackgroundUrl.trim().length > 0 ? ledBackgroundUrl : null) ??
-    (backgroundUrl && backgroundUrl.trim().length > 0 ? backgroundUrl : null) ??
-    ledBackgroundFallback;
+  const isWaitingScreen = screen === "idle" || screen === "waiting";
+  const ledBg = isWaitingScreen
+    ? (ledWaitingBackgroundUrl && ledWaitingBackgroundUrl.trim().length > 0 ? ledWaitingBackgroundUrl : null) ??
+      ledWaitingBackgroundFallback ??
+      (ledBackgroundUrl && ledBackgroundUrl.trim().length > 0 ? ledBackgroundUrl : null) ??
+      (backgroundUrl && backgroundUrl.trim().length > 0 ? backgroundUrl : null) ??
+      ledBackgroundFallback
+    : (ledBackgroundUrl && ledBackgroundUrl.trim().length > 0 ? ledBackgroundUrl : null) ??
+      (backgroundUrl && backgroundUrl.trim().length > 0 ? backgroundUrl : null) ??
+      ledBackgroundFallback;
   const ledBackgroundImage = ledBg && ledBg.trim().length > 0 ? resolveMediaUrl(ledBg) : "";
   const debugEnabled = new URLSearchParams(window.location.search).get("debugBg") === "1";
 
@@ -1405,10 +1414,13 @@ export const LedScreenPage = () => {
           }}
         >
           {`LED BG DEBUG
+screen=${screen} (waiting=${String(isWaitingScreen)})
 state=${bgLoadState}
 ledBackgroundUrl=${String(ledBackgroundUrl ?? "")}
+ledWaitingBackgroundUrl=${String(ledWaitingBackgroundUrl ?? "")}
 backgroundUrl=${String(backgroundUrl ?? "")}
 fallback=${String(ledBackgroundFallback ?? "")}
+waitingFallback=${String(ledWaitingBackgroundFallback ?? "")}
 resolved=${ledBackgroundImage}`}
         </Box>
       )}

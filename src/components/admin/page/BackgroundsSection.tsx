@@ -4,22 +4,28 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 
 type Props = {
   ledBackgroundDraft: string;
+  ledWaitingBackgroundDraft: string;
   contestantBackgroundDraft: string;
   isUploadingLedBg: boolean;
+  isUploadingLedWaitingBg: boolean;
   isUploadingContestantBg: boolean;
   isSavingRules: boolean;
   onUploadLedBackground: (file: File) => Promise<void>;
+  onUploadLedWaitingBackground: (file: File) => Promise<void>;
   onUploadContestantBackground: (file: File) => Promise<void>;
   onSaveBackgrounds: () => Promise<void>;
 };
 
 export const BackgroundsSection = ({
   ledBackgroundDraft,
+  ledWaitingBackgroundDraft,
   contestantBackgroundDraft,
   isUploadingLedBg,
+  isUploadingLedWaitingBg,
   isUploadingContestantBg,
   isSavingRules,
   onUploadLedBackground,
+  onUploadLedWaitingBackground,
   onUploadContestantBackground,
   onSaveBackgrounds
 }: Props) => (
@@ -30,11 +36,12 @@ export const BackgroundsSection = ({
           Hình nền LED và thí sinh
         </Typography>
         <Typography variant="body2" sx={{ color: "#4A7A8A" }}>
-          Tách riêng hai nền: màn LED và máy thí sinh. Sau khi tải ảnh, bấm Lưu cấu hình.
+          Màn LED có 2 nền riêng: nền chờ (idle/waiting) và nền thi (các màn hình còn lại). Sau khi tải ảnh, bấm Lưu cấu hình.
         </Typography>
-        <TextField value={ledBackgroundDraft} label="URL nền LED" fullWidth disabled />
+
+        <TextField value={ledBackgroundDraft} label="URL nền LED (màn thi)" fullWidth disabled />
         <Button variant="outlined" component="label" startIcon={<TvRoundedIcon />} disabled={isUploadingLedBg}>
-          {isUploadingLedBg ? "Đang tải..." : "Tải ảnh nền LED"}
+          {isUploadingLedBg ? "Đang tải..." : "Tải ảnh nền LED (màn thi)"}
           <input
             type="file"
             hidden
@@ -46,6 +53,22 @@ export const BackgroundsSection = ({
             }}
           />
         </Button>
+
+        <TextField value={ledWaitingBackgroundDraft} label="URL nền LED (màn chờ)" fullWidth disabled />
+        <Button variant="outlined" component="label" startIcon={<TvRoundedIcon />} disabled={isUploadingLedWaitingBg}>
+          {isUploadingLedWaitingBg ? "Đang tải..." : "Tải ảnh nền LED (màn chờ)"}
+          <input
+            type="file"
+            hidden
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) await onUploadLedWaitingBackground(file);
+              e.currentTarget.value = "";
+            }}
+          />
+        </Button>
+
         <TextField value={contestantBackgroundDraft} label="URL nền thí sinh" fullWidth disabled />
         <Button variant="outlined" component="label" startIcon={<PersonRoundedIcon />} disabled={isUploadingContestantBg}>
           {isUploadingContestantBg ? "Đang tải..." : "Tải ảnh nền thí sinh"}
