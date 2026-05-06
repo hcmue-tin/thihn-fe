@@ -24,10 +24,14 @@ export const resolveMediaUrl = (url?: string | null): string => {
   if (!url) return "";
   const normalizedInput = url.trim().replace(/\\/g, "/");
   if (/^https?:\/\//i.test(normalizedInput)) {
-    // Backend sometimes returns absolute URLs like http://localhost:5126/... which will break on other devices
-    // (LED screen, contestants) because "localhost" points to the current device.
     try {
       const parsed = new URL(normalizedInput);
+      // Rewrite any absolute upload URL (any host) to use current backend base.
+      // Covers old URLs saved with wrong host/port (e.g. http://host:80/uploads/...).
+      if (parsed.pathname.startsWith("/uploads/")) {
+        const backendBase = getBackendBaseUrl();
+        return new URL(parsed.pathname, `${backendBase}/`).toString();
+      }
       const hostname = parsed.hostname.toLowerCase();
       if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
         const backendBase = getBackendBaseUrl();
