@@ -7,7 +7,10 @@ export const api = axios.create({
 });
 
 export const getBackendBaseUrl = (): string => {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5126/api";
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  if (!apiBaseUrl || apiBaseUrl.startsWith("/")) {
+    return typeof window !== "undefined" ? window.location.origin : "http://localhost:5126";
+  }
   return apiBaseUrl.replace(/\/api\/?$/, "");
 };
 

@@ -250,10 +250,13 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
   const connectSocket = useCallback((auth: { token: string; role: "admin" | "contestant" | "led" }): void => {
     disconnectSocket();
-    const socketBaseUrl =
-      import.meta.env.VITE_SOCKET_URL ||
-      (typeof import.meta.env.VITE_API_BASE_URL === "string" ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "") : "") ||
-      "http://localhost:5126";
+    const socketBaseUrl = (() => {
+      if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL as string;
+      const apiBase = typeof import.meta.env.VITE_API_BASE_URL === "string" ? import.meta.env.VITE_API_BASE_URL : "";
+      const derived = apiBase.replace(/\/api\/?$/, "");
+      if (derived && !derived.startsWith("/")) return derived;
+      return window.location.origin;
+    })();
     const socket = io(socketBaseUrl, {
       // NAS/reverse-proxy setups may not support websocket upgrade reliably.
       // Keep websocket first, but allow polling fallback.
