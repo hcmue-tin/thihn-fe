@@ -337,6 +337,23 @@ export const ContestantPage = () => {
 
   useEffect(() => {
     if (
+      screen !== "countdown" ||
+      !question ||
+      isSubmitted ||
+      locked ||
+      isLoading ||
+      !hasPendingSelection ||
+      remainingMs > 0 ||
+      autoSubmitTriggeredRef.current
+    ) {
+      return;
+    }
+    autoSubmitTriggeredRef.current = true;
+    void submitAnswer();
+  }, [hasPendingSelection, isLoading, isSubmitted, locked, question, remainingMs, screen]);
+
+  useEffect(() => {
+    if (
       screen !== "reveal" ||
       !question ||
       isSubmitted ||
@@ -459,7 +476,8 @@ export const ContestantPage = () => {
 
   const showQuestion = !shouldBlockInteraction && isDuringQuestionFlow && question;
   const showResult = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && latestAnswerResult;
-  const showCorrectAnswer = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && reveal;
+  const showCorrectAnswer =
+    !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && question.type !== "matching" && reveal;
   const waitingForCountdown = screen === "question";
   const canSubmit = isConnected && !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
   const isMatchingQuestion = question?.type === "matching";
