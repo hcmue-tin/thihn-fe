@@ -518,7 +518,7 @@ export const LedScreenPage = () => {
                         sx={{
                           fontWeight: 800,
                           color: "#1A3A4A",
-                          textAlign: "center",
+                          textAlign: "left",
                           fontSize: fluidFont.h4,
                           lineHeight: 1.25,
                           mb: 0
@@ -530,7 +530,7 @@ export const LedScreenPage = () => {
                         sx={{
                           fontWeight: 800,
                           color: "#1A3A4A",
-                          textAlign: "center",
+                          textAlign: "left",
                           fontSize: fluidFont.h4,
                           lineHeight: 1.25,
                           overflowWrap: "anywhere"
