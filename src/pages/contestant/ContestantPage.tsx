@@ -33,6 +33,19 @@ type PendingSubmitPayload = {
   createdAt: number;
 };
 
+const readStoredContestantProfile = (): ContestantIdentity | null => {
+  const raw = localStorage.getItem("contestantProfile");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as ContestantIdentity;
+  } catch {
+    localStorage.removeItem("contestantProfile");
+    localStorage.removeItem("contestantToken");
+    localStorage.removeItem("accessToken");
+    return null;
+  }
+};
+
 /*
  * The contestant page is designed as a fit-to-viewport experience — the
  * whole UI must fit on laptops (1366x768), desktops and iPad landscape
@@ -68,10 +81,7 @@ export const ContestantPage = () => {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState<string | null>(localStorage.getItem("contestantToken"));
-  const [identity, setIdentity] = useState<ContestantIdentity | null>(() => {
-    const raw = localStorage.getItem("contestantProfile");
-    return raw ? (JSON.parse(raw) as ContestantIdentity) : null;
-  });
+  const [identity, setIdentity] = useState<ContestantIdentity | null>(readStoredContestantProfile);
   const [error, setError] = useState<string | null>(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -341,6 +351,37 @@ export const ContestantPage = () => {
     void submitAnswer();
   }, [hasPendingSelection, isLoading, isSubmitted, locked, question, screen]);
 
+  const correctAnswerText = useMemo(() => {
+    if (!question || !reveal) return "";
+    if (question.type === "single_choice" || question.type === "true_false" || question.type === "multiple_choice") {
+      const labels = options
+        .filter((opt) => reveal.correctOptionIds.includes(opt.id))
+        .map((opt) => opt.label)
+        .filter(Boolean);
+      return labels.length > 0 ? labels.join(", ") : "";
+    }
+    if (question.type === "ordering") {
+      return reveal.fillBlankAnswers
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(" | ");
+    }
+    if (question.type === "matching") {
+      return (reveal.fillBlankAnswers[0] ?? "")
+        .split(";")
+        .map((pair) => pair.trim().replace(/\./g, ":"))
+        .filter(Boolean)
+        .join("; ");
+    }
+    if (question.type === "fill_blank") {
+      return reveal.fillBlankAnswers
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(" | ");
+    }
+    return "";
+  }, [options, question, reveal]);
+
   if (!token || !identity) {
     return (
       <ThemeProvider theme={lightTheme}>
@@ -421,36 +462,6 @@ export const ContestantPage = () => {
   const showCorrectAnswer = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && reveal;
   const waitingForCountdown = screen === "question";
   const canSubmit = isConnected && !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
-  const correctAnswerText = useMemo(() => {
-    if (!question || !reveal) return "";
-    if (question.type === "single_choice" || question.type === "true_false" || question.type === "multiple_choice") {
-      const labels = options
-        .filter((opt) => reveal.correctOptionIds.includes(opt.id))
-        .map((opt) => opt.label)
-        .filter(Boolean);
-      return labels.length > 0 ? labels.join(", ") : "";
-    }
-    if (question.type === "ordering") {
-      return reveal.fillBlankAnswers
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .join(" | ");
-    }
-    if (question.type === "matching") {
-      return (reveal.fillBlankAnswers[0] ?? "")
-        .split(";")
-        .map((pair) => pair.trim().replace(/\./g, ":"))
-        .filter(Boolean)
-        .join("; ");
-    }
-    if (question.type === "fill_blank") {
-      return reveal.fillBlankAnswers
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .join(" | ");
-    }
-    return "";
-  }, [options, question, reveal]);
   const contestantBg =
     (contestantBackgroundUrl && contestantBackgroundUrl.trim().length > 0 ? contestantBackgroundUrl : null) ??
     (backgroundUrl && backgroundUrl.trim().length > 0 ? backgroundUrl : null) ??
@@ -639,6 +650,11 @@ export const ContestantPage = () => {
             {!shouldBlockInteraction && showWaiting && (
               <Alert severity="info" sx={{ borderRadius: 3, fontSize: fluidFont.body }}>
                 {showRules ? "Đang hiển thị thể lệ cuộc thi" : "Đang chờ quản trị viên bắt đầu..."}
+              </Alert>
+            )}
+            {!shouldBlockInteraction && isDuringQuestionFlow && !question && (
+              <Alert severity="info" sx={{ borderRadius: 3, fontSize: fluidFont.body }}>
+                Dang tai cau hoi...
               </Alert>
             )}
             {showRules && (
