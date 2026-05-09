@@ -462,6 +462,7 @@ export const ContestantPage = () => {
   const showCorrectAnswer = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && reveal;
   const waitingForCountdown = screen === "question";
   const canSubmit = isConnected && !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
+  const isMatchingQuestion = question?.type === "matching";
   const contestantBg =
     (contestantBackgroundUrl && contestantBackgroundUrl.trim().length > 0 ? contestantBackgroundUrl : null) ??
     (backgroundUrl && backgroundUrl.trim().length > 0 ? backgroundUrl : null) ??
@@ -690,44 +691,44 @@ export const ContestantPage = () => {
                   }
                 }}
               >
-                {/* Fluid circular countdown. Size scales with vmin so it
-                    looks balanced on every aspect ratio. */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    flexShrink: 0
-                  }}
-                >
+                {!isMatchingQuestion && (
                   <Box
                     sx={{
-                      width: fluid(4.5, 9, 8, "vmin"),
-                      height: fluid(4.5, 9, 8, "vmin"),
-                      aspectRatio: "1 / 1",
-                      borderRadius: "50%",
-                      border: "2px solid rgba(15,107,109,0.28)",
-                      background:
-                        "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
-                      boxShadow: "0 12px 28px rgba(15,107,109,0.14)",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center"
+                      justifyContent: "center",
+                      textAlign: "center",
+                      flexShrink: 0
                     }}
                   >
-                    <Typography
+                    <Box
                       sx={{
-                        fontWeight: 900,
-                        color: "#17324d",
-                        lineHeight: 1,
-                        fontSize: fluidFont.displaySm
+                        width: fluid(4.5, 9, 8, "vmin"),
+                        height: fluid(4.5, 9, 8, "vmin"),
+                        aspectRatio: "1 / 1",
+                        borderRadius: "50%",
+                        border: "2px solid rgba(15,107,109,0.28)",
+                        background:
+                          "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
+                        boxShadow: "0 12px 28px rgba(15,107,109,0.14)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
                       }}
                     >
-                      {countdownDisplay}
-                    </Typography>
+                      <Typography
+                        sx={{
+                          fontWeight: 900,
+                          color: "#17324d",
+                          lineHeight: 1,
+                          fontSize: fluidFont.displaySm
+                        }}
+                      >
+                        {countdownDisplay}
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
+                )}
 
                 <Box
                   sx={{
@@ -753,7 +754,7 @@ export const ContestantPage = () => {
                     isSubmitted={isSubmitted}
                     canSubmit={canSubmit}
                     waitingForCountdown={waitingForCountdown}
-                    countdownValue={null}
+                    countdownValue={isMatchingQuestion ? countdownDisplay : null}
                     onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
                     onToggleMultiple={(optionId, checked) => {
                       if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);

@@ -48,6 +48,7 @@ export const QuestionForm = ({
   const matchingStem = question.type === "matching" ? parseMatchingContent(question.content).stem : "";
   const choiceInteractionLocked = locked || (waitingForCountdown && CHOICE_SUBMIT_TYPES.includes(question.type));
   const textInteractionLocked = locked || waitingForCountdown;
+  const isMatching = question.type === "matching";
 
   const missingAnswer =
     (SINGLE_SELECT_TYPES.includes(question.type) && !selectedOptionIds[0]) ||
@@ -65,7 +66,7 @@ export const QuestionForm = ({
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          gap: fluid(0.5, 0.9, 1.2)
+          gap: isMatching ? fluid(0.3, 0.45, 0.65) : fluid(0.5, 0.9, 1.2)
         }}
       >
         <LinearProgress
@@ -85,11 +86,11 @@ export const QuestionForm = ({
           sx={{
             flex: 1,
             minHeight: 0,
-            overflow: "auto",
+            overflow: isMatching ? "hidden" : "auto",
             pr: 0.25,
             display: "flex",
             flexDirection: "column",
-            gap: fluid(0.5, 0.9, 1.2),
+            gap: isMatching ? fluid(0.25, 0.4, 0.6) : fluid(0.5, 0.9, 1.2),
             // Compact mode on shorter heights to reduce overflow pressure.
             "@media (max-height: 820px)": {
               gap: fluid(0.35, 0.6, 0.9),
@@ -97,7 +98,7 @@ export const QuestionForm = ({
             }
           }}
         >
-          {countdownValue !== null && (
+          {countdownValue !== null && !isMatching && (
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
               <Box
                 sx={{
@@ -122,12 +123,54 @@ export const QuestionForm = ({
             sx={{
               display: "flex",
               flexDirection: "column",
-              gap: fluid(0.75, 1.2, 1.8),
+              gap: isMatching ? fluid(0.35, 0.55, 0.8) : fluid(0.75, 1.2, 1.8),
               alignItems: "stretch"
             }}
           >
             <Box sx={{ minWidth: 0 }}>
-              {question.type === "fill_blank" ? (
+              {isMatching ? (
+                <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "start", gap: fluid(0.5, 0.8, 1) }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: "#0F172A",
+                      fontWeight: 800,
+                      lineHeight: 1.25,
+                      fontSize: fluidFont.body,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      minWidth: 0
+                    }}
+                    title={matchingStem || question.content}
+                  >
+                    {matchingStem || question.content}
+                  </Typography>
+                  {countdownValue !== null && (
+                    <Box
+                      sx={{
+                        width: fluid(2.6, 4.2, 4.5, "vmin"),
+                        height: fluid(2.6, 4.2, 4.5, "vmin"),
+                        minWidth: "2.4rem",
+                        minHeight: "2.4rem",
+                        borderRadius: "50%",
+                        border: "2px solid rgba(15,107,109,0.28)",
+                        background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 8px 18px rgba(15,107,109,0.12)",
+                        flexShrink: 0
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 900, color: "#17324d", lineHeight: 1, fontSize: fluidFont.subtitle }}>
+                        {countdownValue}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              ) : question.type === "fill_blank" ? (
                 <QuestionContentWithBlank content={question.content} variant="h6" />
               ) : (
                 <Typography
@@ -140,7 +183,7 @@ export const QuestionForm = ({
                     fontSize: fluidFont.h6
                   }}
                 >
-                  {question.type === "matching" ? matchingStem || question.content : question.content}
+                  {question.content}
                 </Typography>
               )}
               {question.imageUrl && (

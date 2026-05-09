@@ -1,4 +1,4 @@
-import { Box, Button, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, TextField, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import { fluid, fluidFont } from "../../../utils/fluid";
 import { parseMatchingContent } from "../../admin/matchingEditorUtils";
@@ -36,8 +36,11 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
           })),
     [content, parsed.right]
   );
+
   const leftKeys = leftItems.map((item) => item.key);
   const rightKeys = rightItems.map((item) => item.key);
+  const pairCount = Math.max(leftItems.length, rightItems.length);
+  const compactLevel = pairCount >= 10 ? 3 : pairCount >= 8 ? 2 : pairCount >= 6 ? 1 : 0;
   const matchingPairs = useMemo(
     () =>
       fillText
@@ -45,8 +48,8 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
         .map((item) => item.trim().replace(/\./g, ":"))
         .filter(Boolean)
         .reduce<Record<string, string>>((acc, item) => {
-          const [l, r] = item.split(":").map((s) => s.trim());
-          if (l && r) acc[l] = r.toUpperCase();
+          const [left, right] = item.split(":").map((value) => value.trim());
+          if (left && right) acc[left] = right.toUpperCase();
           return acc;
         }, {}),
     [fillText]
@@ -54,15 +57,16 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
 
   const buildMatchingText = (pairs: Record<string, string>): string =>
     leftKeys
-      .filter((k) => pairs[k])
-      .map((k) => `${k}:${pairs[k]}`)
+      .filter((key) => pairs[key])
+      .map((key) => `${key}:${pairs[key]}`)
       .join(";");
-  const completedAllPairs = leftKeys.length > 0 && leftKeys.every((k) => !!matchingPairs[k]);
-  const interactionLocked = locked;
+  const completedCount = leftKeys.filter((key) => !!matchingPairs[key]).length;
+  const completedAllPairs = leftKeys.length > 0 && completedCount === leftKeys.length;
   const usedLeftKeys = new Set(Object.keys(matchingPairs));
   const usedRightKeys = new Set(Object.values(matchingPairs));
   const leftPairColorMap = new Map<string, string>();
   const rightPairColorMap = new Map<string, string>();
+
   leftKeys.forEach((leftKey, index) => {
     const rightKey = matchingPairs[leftKey];
     if (!rightKey) return;
@@ -72,7 +76,7 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
   });
 
   const handleLeftSelect = (leftKey: string): void => {
-    if (interactionLocked) return;
+    if (locked) return;
     if (matchingPairs[leftKey]) {
       const next = { ...matchingPairs };
       delete next[leftKey];
@@ -90,7 +94,7 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
   };
 
   const handleRightSelect = (rightKey: string): void => {
-    if (interactionLocked) return;
+    if (locked) return;
     const leftKeyUsingRight = Object.keys(matchingPairs).find((leftKey) => matchingPairs[leftKey] === rightKey);
     if (leftKeyUsingRight) {
       const next = { ...matchingPairs };
@@ -101,14 +105,6 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
       return;
     }
     if (selectedRightKey === rightKey) {
-      if (selectedLeftKey && matchingPairs[selectedLeftKey] === rightKey) {
-        const next = { ...matchingPairs };
-        delete next[selectedLeftKey];
-        onFillTextChange(buildMatchingText(next));
-        setSelectedLeftKey("");
-        setSelectedRightKey("");
-        return;
-      }
       setSelectedRightKey("");
       return;
     }
@@ -123,9 +119,9 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
   if (leftKeys.length === 0 || rightKeys.length === 0) {
     return (
       <TextField
-        label="Câu trả lời (ví dụ 1:C;2:D;3:A)"
+        label="Cau tra loi (vi du 1:C;2:D;3:A)"
         value={fillText}
-        onChange={(e) => onFillTextChange(e.target.value)}
+        onChange={(event) => onFillTextChange(event.target.value)}
         disabled={locked}
         fullWidth
         sx={{ "& .MuiOutlinedInput-root": { borderRadius: 3, backgroundColor: "#f8fafc" } }}
@@ -133,27 +129,32 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
     );
   }
 
+  const itemFont = compactLevel >= 2 ? fluidFont.caption : fluidFont.body;
+  const columnGap = compactLevel >= 2 ? fluid(0.35, 0.5, 0.65) : fluid(0.5, 0.75, 1);
+  const rowGap = compactLevel >= 2 ? 0.25 : compactLevel === 1 ? 0.35 : 0.45;
   const pillSx = {
-    borderRadius: 2,
+    borderRadius: compactLevel >= 2 ? 1.25 : 1.5,
     justifyContent: "flex-start",
     textAlign: "left",
-    px: fluid(0.75, 1.1, 1.5),
-    py: fluid(0.6, 0.9, 1.1),
-    minHeight: fluid(2.25, 2.75, 3.25),
+    px: compactLevel >= 2 ? fluid(0.35, 0.5, 0.65) : compactLevel === 1 ? fluid(0.45, 0.65, 0.85) : fluid(0.55, 0.8, 1),
+    py: compactLevel >= 2 ? fluid(0.18, 0.28, 0.36) : compactLevel === 1 ? fluid(0.28, 0.38, 0.5) : fluid(0.38, 0.55, 0.7),
+    minHeight: compactLevel >= 2 ? fluid(1.45, 1.75, 2) : compactLevel === 1 ? fluid(1.65, 2, 2.25) : fluid(1.9, 2.25, 2.55),
     textTransform: "none",
-    fontSize: fluidFont.body
+    fontSize: itemFont,
+    lineHeight: 1.15,
+    overflow: "hidden"
   } as const;
 
   return (
-    <Stack spacing={fluid(0.5, 0.9, 1.25)}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={fluid(0.5, 0.8, 1.1)}>
-        <Typography sx={{ color: "#111827", fontWeight: 500, fontSize: fluidFont.body }}>
-          {completedAllPairs ? "Đã ghép đủ cặp, bạn có thể nộp bài hoặc reset để làm lại." : "Chọn 1 mục ở cột trái và 1 mục ở cột phải để ghép cặp"}
+    <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: compactLevel >= 2 ? 0.35 : 0.6, overflow: "hidden" }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: fluid(0.4, 0.6, 0.8), flexShrink: 0 }}>
+        <Typography sx={{ color: "#111827", fontWeight: 800, fontSize: itemFont, lineHeight: 1.15 }}>
+          {`Đã ghép ${completedCount}/${leftKeys.length}`}
         </Typography>
         <Button
           variant="outlined"
           color="inherit"
-          disabled={locked || Object.keys(matchingPairs).length === 0}
+          disabled={locked || completedCount === 0}
           onClick={() => {
             onFillTextChange("");
             setSelectedLeftKey("");
@@ -161,122 +162,141 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
           }}
           sx={{
             flexShrink: 0,
-            borderRadius: 2,
+            borderRadius: 1.5,
             textTransform: "none",
             fontWeight: 700,
-            fontSize: fluidFont.body,
+            fontSize: itemFont,
+            minHeight: compactLevel >= 2 ? "1.6rem" : "2rem",
+            px: compactLevel >= 2 ? 0.75 : 1,
+            py: 0.1,
             borderColor: "rgba(17,24,39,0.25)",
             color: "#111827",
             "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" }
           }}
         >
-          Reset lại
+          Reset
         </Button>
-      </Stack>
+      </Box>
+
       <Box
         sx={{
+          flex: 1,
+          minHeight: 0,
           display: "grid",
-          gap: fluid(0.75, 1.2, 1.8),
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))"
+          gap: columnGap,
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          alignItems: "stretch"
         }}
       >
-        <Stack spacing={fluid(0.4, 0.6, 0.9)}>
-          <Typography sx={{ color: "#111827", fontWeight: 600, fontSize: fluidFont.body }}>
+        <Box sx={{ minHeight: 0, display: "grid", gap: rowGap, alignContent: "start" }}>
+          <Typography sx={{ color: "#111827", fontWeight: 800, fontSize: itemFont, lineHeight: 1.1 }}>
             Cột trái
           </Typography>
-          {leftItems.map((left) => (
-            <Button
-              key={left.key}
-              variant={selectedLeftKey === left.key ? "contained" : "outlined"}
-              color={matchingPairs[left.key] ? "success" : "primary"}
-              disabled={interactionLocked}
-              onClick={() => handleLeftSelect(left.key)}
-              sx={{
-                ...pillSx,
-                fontWeight: selectedLeftKey === left.key ? 600 : 500,
-                borderColor: leftPairColorMap.get(left.key) ?? (usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)"),
-                color: leftPairColorMap.get(left.key) ?? (usedLeftKeys.has(left.key) ? "#6B7280" : "#111827"),
-                backgroundColor: leftPairColorMap.get(left.key) ? `${leftPairColorMap.get(left.key)}1F` : usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.08)" : "transparent",
-                "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" },
-                ...(selectedLeftKey === left.key
-                  ? {
-                      color: "#0F172A",
-                      backgroundColor: "rgba(26,140,142,0.12)",
-                      borderColor: "rgba(26,140,142,0.45)"
-                    }
-                  : {}),
-                "&.Mui-disabled": {
-                  color: "#6B7280",
-                  WebkitTextFillColor: "#6B7280",
-                  borderColor: "rgba(107,114,128,0.45)",
-                  fontWeight: 700,
-                  opacity: 1
-                }
-              }}
-            >
-              {left.key}
-              {left.text ? `. ${left.text}` : ""}
-            </Button>
-          ))}
-        </Stack>
-        <Stack spacing={fluid(0.4, 0.6, 0.9)}>
-          <Typography sx={{ color: "#111827", fontWeight: 600, fontSize: fluidFont.body }}>
+          {leftItems.map((left) => {
+            const isSelected = selectedLeftKey === left.key;
+            const pairColor = leftPairColorMap.get(left.key);
+            return (
+              <Button
+                key={left.key}
+                variant={isSelected ? "contained" : "outlined"}
+                disabled={locked}
+                onClick={() => handleLeftSelect(left.key)}
+                sx={{
+                  ...pillSx,
+                  fontWeight: isSelected ? 700 : 600,
+                  borderColor: pairColor ?? (usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)"),
+                  color: pairColor ?? (usedLeftKeys.has(left.key) ? "#6B7280" : "#111827"),
+                  backgroundColor: pairColor ? `${pairColor}1F` : usedLeftKeys.has(left.key) ? "rgba(107,114,128,0.08)" : "transparent",
+                  "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" },
+                  ...(isSelected
+                    ? {
+                        color: "#0F172A",
+                        backgroundColor: "rgba(26,140,142,0.12)",
+                        borderColor: "rgba(26,140,142,0.45)"
+                      }
+                    : {}),
+                  "&.Mui-disabled": {
+                    color: "#6B7280",
+                    WebkitTextFillColor: "#6B7280",
+                    borderColor: "rgba(107,114,128,0.45)",
+                    fontWeight: 700,
+                    opacity: 1
+                  }
+                }}
+              >
+                <Box component="span" sx={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: compactLevel >= 2 ? 2 : 3, WebkitBoxOrient: "vertical" }}>
+                  {left.key}
+                  {left.text ? `. ${left.text}` : ""}
+                </Box>
+              </Button>
+            );
+          })}
+        </Box>
+
+        <Box sx={{ minHeight: 0, display: "grid", gap: rowGap, alignContent: "start" }}>
+          <Typography sx={{ color: "#111827", fontWeight: 800, fontSize: itemFont, lineHeight: 1.1 }}>
             Cột phải
           </Typography>
-          {rightItems.map((right) => (
-            <Button
-              key={right.key}
-              variant={selectedRightKey === right.key ? "contained" : "outlined"}
-              disabled={interactionLocked}
-              onClick={() => handleRightSelect(right.key)}
-              sx={{
-                ...pillSx,
-                fontWeight: selectedRightKey === right.key ? 600 : 500,
-                borderColor: rightPairColorMap.get(right.key) ?? (usedRightKeys.has(right.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)"),
-                color: rightPairColorMap.get(right.key) ?? (usedRightKeys.has(right.key) ? "#6B7280" : "#111827"),
-                backgroundColor: rightPairColorMap.get(right.key) ? `${rightPairColorMap.get(right.key)}1F` : usedRightKeys.has(right.key) ? "rgba(107,114,128,0.08)" : "transparent",
-                "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" },
-                "&.Mui-disabled": {
-                  color: "#6B7280",
-                  WebkitTextFillColor: "#6B7280",
-                  borderColor: "rgba(107,114,128,0.45)",
-                  fontWeight: 700,
-                  opacity: 1
-                },
-                ...(selectedRightKey === right.key
-                  ? {
-                      color: "#0F172A",
-                      backgroundColor: "rgba(26,140,142,0.12)",
-                      borderColor: "rgba(26,140,142,0.45)",
-                      "&:hover": { backgroundColor: "rgba(26,140,142,0.16)" }
-                    }
-                  : {})
-              }}
-            >
-              {right.key}
-              {right.text ? `. ${right.text}` : ""}
-            </Button>
-          ))}
-        </Stack>
+          {rightItems.map((right) => {
+            const isSelected = selectedRightKey === right.key;
+            const pairColor = rightPairColorMap.get(right.key);
+            return (
+              <Button
+                key={right.key}
+                variant={isSelected ? "contained" : "outlined"}
+                disabled={locked}
+                onClick={() => handleRightSelect(right.key)}
+                sx={{
+                  ...pillSx,
+                  fontWeight: isSelected ? 700 : 600,
+                  borderColor: pairColor ?? (usedRightKeys.has(right.key) ? "rgba(107,114,128,0.45)" : "rgba(17,24,39,0.35)"),
+                  color: pairColor ?? (usedRightKeys.has(right.key) ? "#6B7280" : "#111827"),
+                  backgroundColor: pairColor ? `${pairColor}1F` : usedRightKeys.has(right.key) ? "rgba(107,114,128,0.08)" : "transparent",
+                  "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" },
+                  "&.Mui-disabled": {
+                    color: "#6B7280",
+                    WebkitTextFillColor: "#6B7280",
+                    borderColor: "rgba(107,114,128,0.45)",
+                    fontWeight: 700,
+                    opacity: 1
+                  },
+                  ...(isSelected
+                    ? {
+                        color: "#0F172A",
+                        backgroundColor: "rgba(26,140,142,0.12)",
+                        borderColor: "rgba(26,140,142,0.45)",
+                        "&:hover": { backgroundColor: "rgba(26,140,142,0.16)" }
+                      }
+                    : {})
+                }}
+              >
+                <Box component="span" sx={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: compactLevel >= 2 ? 2 : 3, WebkitBoxOrient: "vertical" }}>
+                  {right.key}
+                  {right.text ? `. ${right.text}` : ""}
+                </Box>
+              </Button>
+            );
+          })}
+        </Box>
       </Box>
-      <TextField
-        label="Kết quả ghép"
-        value={fillText}
-        onChange={(e) => onFillTextChange(e.target.value)}
-        disabled={locked}
-        fullWidth
-        sx={{
-          "& .MuiInputLabel-root": { color: "#111827", fontWeight: 500 },
-          "& .MuiInputLabel-root.Mui-disabled": { color: "#6B7280", fontWeight: 700 },
-          "& .MuiInputBase-input.Mui-disabled": {
-            WebkitTextFillColor: "#6B7280",
-            color: "#6B7280",
-            opacity: 1,
-            fontWeight: 700
-          },
-          "& .MuiOutlinedInput-root": { borderRadius: 3, backgroundColor: "#f8fafc", color: "#111827", fontWeight: 500 }
-        }}
-      />
-    </Stack>
+
+      {completedAllPairs && (
+        <Typography
+          sx={{
+            flexShrink: 0,
+            color: "#17324d",
+            fontWeight: 800,
+            fontSize: itemFont,
+            lineHeight: 1.15,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }}
+          title={`Kết quả: ${fillText}`}
+        >
+          {`Kết quả: ${fillText}`}
+        </Typography>
+      )}
+    </Box>
   );
 };

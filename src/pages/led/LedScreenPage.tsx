@@ -260,6 +260,8 @@ export const LedScreenPage = () => {
       : countedQuestionId === question?.id
         ? 0
         : (question?.countdownSeconds ?? countdownSeconds ?? 0);
+  const isShowingMatchingSolution =
+    question?.type === "matching" && screen === "reveal" && ledSolutionVisible && matchingConnections.length > 0;
 
   // Fluid frame: leaves breathing room on desktop, expands to full width
   // on laptops and shrinks gracefully on tablets.
@@ -557,7 +559,7 @@ export const LedScreenPage = () => {
                       </Typography>
                     )}
 
-                    {question.type === "matching" && (matchingColumns.left.length > 0 || matchingColumns.right.length > 0) && (
+                    {question.type === "matching" && !isShowingMatchingSolution && (matchingColumns.left.length > 0 || matchingColumns.right.length > 0) && (
                       <Box
                         sx={{
                           display: "grid",
@@ -744,7 +746,7 @@ export const LedScreenPage = () => {
                         </GlassCard>
                       )}
 
-                    {question.type === "matching" && screen === "reveal" && ledSolutionVisible && matchingConnections.length > 0 && (
+                    {isShowingMatchingSolution && (
                       <GlassCard
                         sx={{
                           p: fluid(0.75, 1.2, 1.75),
@@ -755,11 +757,11 @@ export const LedScreenPage = () => {
                       >
                         <Typography
                           component="div"
-                          sx={{ fontWeight: 900, color: "#0F6B6D", mb: fluid(0.5, 0.8, 1.1), fontSize: fluidFont.subtitle }}
+                          sx={{ display: "none" }}
                         >
                           Dây nối đáp án đúng
                         </Typography>
-                        {acceptedAnswerCompact && (
+                        {false && acceptedAnswerCompact && (
                           <Typography
                             component="div"
                             sx={{
