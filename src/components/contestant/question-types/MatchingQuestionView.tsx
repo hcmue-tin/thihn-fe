@@ -214,8 +214,8 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
                 }
               }}
             >
-              Mục {left.key}
-              {left.text ? `: ${left.text}` : ""}
+              {left.key}
+              {left.text ? `. ${left.text}` : ""}
             </Button>
           ))}
         </Stack>
@@ -253,8 +253,8 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
                   : {})
               }}
             >
-              Đáp án {right.key}
-              {right.text ? `: ${right.text}` : ""}
+              {right.key}
+              {right.text ? `. ${right.text}` : ""}
             </Button>
           ))}
         </Stack>

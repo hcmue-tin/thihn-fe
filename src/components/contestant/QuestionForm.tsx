@@ -54,7 +54,6 @@ export const QuestionForm = ({
     (question.type === "multiple_choice" && selectedOptionIds.length === 0) ||
     (question.type === "ordering" && orderingSequence.length === 0) ||
     (question.type === "matching" && !fillText.trim());
-  const isChoiceLayout = SINGLE_SELECT_TYPES.includes(question.type) || question.type === "multiple_choice";
 
   return (
     <Card elevation={0} sx={{ backgroundColor: "transparent", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -121,11 +120,10 @@ export const QuestionForm = ({
 
           <Box
             sx={{
-              display: "grid",
+              display: "flex",
+              flexDirection: "column",
               gap: fluid(0.75, 1.2, 1.8),
-              alignItems: "start",
-              gridTemplateColumns: isChoiceLayout ? "repeat(auto-fit, minmax(min(22rem, 100%), 1fr))" : "1fr",
-              "@media (max-height: 820px)": { gridTemplateColumns: "1fr" }
+              alignItems: "stretch"
             }}
           >
             <Box sx={{ minWidth: 0 }}>
@@ -169,7 +167,7 @@ export const QuestionForm = ({
               )}
             </Box>
 
-            {isChoiceLayout && (
+            {(SINGLE_SELECT_TYPES.includes(question.type) || question.type === "multiple_choice") && (
               <Box sx={{ minWidth: 0 }}>
                 <ChoiceQuestionView
                   type={question.type}

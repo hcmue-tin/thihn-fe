@@ -454,7 +454,8 @@ export const ContestantPage = () => {
     setPassword("");
   };
 
-  const countdownDisplay = screen === "countdown" ? remainingSeconds : "—";
+  const countdownDisplay =
+    screen === "countdown" ? remainingSeconds : (question?.countdownSeconds ?? countdownSeconds ?? 0);
 
   return (
     <ThemeProvider theme={lightTheme}>
@@ -647,21 +648,58 @@ export const ContestantPage = () => {
                 sx={{
                   flex: 1,
                   minHeight: 0,
-                  display: "grid",
-                  // Question form takes the remaining space; timer column sizes
-                  // fluidly between 9rem (laptop) and 12rem (desktop/LED).
-                  gridTemplateColumns: "minmax(0, 1fr) clamp(8rem, 14vw, 12rem)",
+                  display: "flex",
+                  flexDirection: "column",
                   gap: fluid(0.75, 1.4, 2),
                   alignItems: "stretch",
                   "@media (max-width: 640px)": {
-                    gridTemplateColumns: "1fr",
                     gap: fluid(0.75, 1, 1.25)
                   }
                 }}
               >
+                {/* Fluid circular countdown. Size scales with vmin so it
+                    looks balanced on every aspect ratio. */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                    flexShrink: 0
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: fluid(4.5, 9, 8, "vmin"),
+                      height: fluid(4.5, 9, 8, "vmin"),
+                      aspectRatio: "1 / 1",
+                      borderRadius: "50%",
+                      border: "2px solid rgba(15,107,109,0.28)",
+                      background:
+                        "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
+                      boxShadow: "0 12px 28px rgba(15,107,109,0.14)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontWeight: 900,
+                        color: "#17324d",
+                        lineHeight: 1,
+                        fontSize: fluidFont.displaySm
+                      }}
+                    >
+                      {countdownDisplay}
+                    </Typography>
+                  </Box>
+                </Box>
+
                 <Box
                   sx={{
                     minWidth: 0,
+                    flex: 1,
                     minHeight: 0,
                     p: fluid(0.5, 1, 1.25),
                     borderRadius: 3,
@@ -691,45 +729,6 @@ export const ContestantPage = () => {
                     onFillTextChange={setFillText}
                     onSubmit={submitAnswer}
                   />
-                </Box>
-
-                {/* Fluid circular countdown. Size scales with vmin so it
-                    looks balanced on every aspect ratio. */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center"
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: fluid(6, 14, 12, "vmin"),
-                      height: fluid(6, 14, 12, "vmin"),
-                      aspectRatio: "1 / 1",
-                      borderRadius: "50%",
-                      border: "2px solid rgba(15,107,109,0.28)",
-                      background:
-                        "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,251,255,0.88) 100%)",
-                      boxShadow: "0 12px 28px rgba(15,107,109,0.14)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontWeight: 900,
-                        color: "#17324d",
-                        lineHeight: 1,
-                        fontSize: fluidFont.displaySm
-                      }}
-                    >
-                      {countdownDisplay}
-                    </Typography>
-                  </Box>
                 </Box>
               </Box>
             )}

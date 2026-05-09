@@ -241,6 +241,8 @@ export const LedScreenPage = () => {
       ledBackgroundFallback;
   const ledBackgroundImage = ledBg && ledBg.trim().length > 0 ? resolveMediaUrl(ledBg) : "";
   const debugEnabled = new URLSearchParams(window.location.search).get("debugBg") === "1";
+  const countdownDisplay =
+    screen === "countdown" ? remainingSeconds : (question?.countdownSeconds ?? countdownSeconds ?? 0);
 
   // Fluid frame: leaves breathing room on desktop, expands to full width
   // on laptops and shrinks gracefully on tablets.
@@ -349,7 +351,7 @@ export const LedScreenPage = () => {
                   lineHeight: 1
                 }}
               >
-                {screen === "countdown" ? remainingSeconds : "—"}
+                {countdownDisplay}
               </Typography>
             </Box>
           )}
@@ -637,9 +639,11 @@ export const LedScreenPage = () => {
                         sx={{
                           minWidth: 0,
                           display: "grid",
-                          // Option cards: 2 per row when space allows, 1 on narrow viewports.
-                          gridTemplateColumns: "repeat(auto-fit, minmax(min(20rem, 100%), 1fr))",
-                          gap: fluid(0.5, 0.9, 1.3)
+                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gap: fluid(0.5, 0.9, 1.3),
+                          "@media (max-width: 900px)": {
+                            gridTemplateColumns: "1fr"
+                          }
                         }}
                       >
                         {options.map((opt) => (

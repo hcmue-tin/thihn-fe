@@ -1,4 +1,4 @@
-import { Box, Checkbox, Radio, Stack, Typography } from "@mui/material";
+import { Box, Checkbox, Radio, Typography } from "@mui/material";
 import type { QuestionOption } from "../../../types/realtime";
 import { fluid, fluidFont } from "../../../utils/fluid";
 import { SINGLE_SELECT_TYPES } from "../../admin/questionTypeGroups";
@@ -33,7 +33,14 @@ const cardSx = (isSelected: boolean, locked: boolean) => ({
 export const ChoiceQuestionView = ({ type, options, selectedOptionIds, locked, onSelectSingle, onToggleMultiple }: Props) => {
   if (type === "multiple_choice") {
     return (
-      <Stack spacing={fluid(0.4, 0.7, 1)}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: fluid(0.4, 0.7, 1),
+          "@media (max-width: 640px)": { gridTemplateColumns: "1fr" }
+        }}
+      >
         {options.map((opt) => {
           const isSelected = selectedOptionIds.includes(opt.id);
           return (
@@ -57,7 +64,7 @@ export const ChoiceQuestionView = ({ type, options, selectedOptionIds, locked, o
             </Box>
           );
         })}
-      </Stack>
+      </Box>
     );
   }
 
@@ -66,7 +73,14 @@ export const ChoiceQuestionView = ({ type, options, selectedOptionIds, locked, o
   }
 
   return (
-    <Stack spacing={fluid(0.4, 0.7, 1)}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: fluid(0.4, 0.7, 1),
+        "@media (max-width: 640px)": { gridTemplateColumns: "1fr" }
+      }}
+    >
       {options.map((opt) => {
         const isSelected = selectedOptionIds[0] === opt.id;
         return (
@@ -90,6 +104,6 @@ export const ChoiceQuestionView = ({ type, options, selectedOptionIds, locked, o
           </Box>
         );
       })}
-    </Stack>
+    </Box>
   );
 };
