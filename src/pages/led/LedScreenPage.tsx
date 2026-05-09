@@ -56,6 +56,7 @@ export const LedScreenPage = () => {
   const [ledWaitingBackgroundFallback, setLedWaitingBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const [leaderboardPageIndex, setLeaderboardPageIndex] = useState(0);
+  const [countedQuestionId, setCountedQuestionId] = useState<number | null>(null);
   const {
     socket,
     screen,
@@ -108,6 +109,18 @@ export const LedScreenPage = () => {
 
   const { remainingSeconds } = useCountdownClock(countdownEndsAt, countdownSeconds);
   const { ledAudioRef } = useLedAudioSync(socket, question?.audioUrl);
+  useEffect(() => {
+    if (!question) {
+      setCountedQuestionId(null);
+      return;
+    }
+    setCountedQuestionId((prev) => (prev === question.id ? prev : null));
+  }, [question?.id]);
+  useEffect(() => {
+    if (question && countdownEndsAt) {
+      setCountedQuestionId(question.id);
+    }
+  }, [countdownEndsAt, question]);
   const flattenedTeamContestants = useMemo(() => {
     const rows =
       teamList?.teams.flatMap((team) =>
@@ -242,7 +255,11 @@ export const LedScreenPage = () => {
   const ledBackgroundImage = ledBg && ledBg.trim().length > 0 ? resolveMediaUrl(ledBg) : "";
   const debugEnabled = new URLSearchParams(window.location.search).get("debugBg") === "1";
   const countdownDisplay =
-    screen === "countdown" ? remainingSeconds : (question?.countdownSeconds ?? countdownSeconds ?? 0);
+    screen === "countdown"
+      ? remainingSeconds
+      : countedQuestionId === question?.id
+        ? 0
+        : (question?.countdownSeconds ?? countdownSeconds ?? 0);
 
   // Fluid frame: leaves breathing room on desktop, expands to full width
   // on laptops and shrinks gracefully on tablets.

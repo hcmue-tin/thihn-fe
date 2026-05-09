@@ -81,6 +81,7 @@ export const ContestantPage = () => {
   const [locked, setLocked] = useState(false);
   const [contestantBackgroundFallback, setContestantBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
+  const [countedQuestionId, setCountedQuestionId] = useState<number | null>(null);
   const autoSubmitTriggeredRef = useRef(false);
   const pendingRetryKeyRef = useRef<string | null>(null);
   const currentSessionId = fullState?.currentSessionId ?? 1;
@@ -196,6 +197,18 @@ export const ContestantPage = () => {
   }, [draftKey, fillText, isSubmitted, locked, question, selectedOptionIds]);
 
   const { remainingMs, remainingSeconds, progress } = useCountdownClock(countdownEndsAt, countdownSeconds);
+  useEffect(() => {
+    if (!question) {
+      setCountedQuestionId(null);
+      return;
+    }
+    setCountedQuestionId((prev) => (prev === question.id ? prev : null));
+  }, [question?.id]);
+  useEffect(() => {
+    if (question && countdownEndsAt) {
+      setCountedQuestionId(question.id);
+    }
+  }, [countdownEndsAt, question]);
 
   const handleLogin = async (): Promise<void> => {
     setIsLoading(true);
@@ -455,7 +468,11 @@ export const ContestantPage = () => {
   };
 
   const countdownDisplay =
-    screen === "countdown" ? remainingSeconds : (question?.countdownSeconds ?? countdownSeconds ?? 0);
+    screen === "countdown"
+      ? remainingSeconds
+      : countedQuestionId === question?.id
+        ? 0
+        : (question?.countdownSeconds ?? countdownSeconds ?? 0);
 
   return (
     <ThemeProvider theme={lightTheme}>
