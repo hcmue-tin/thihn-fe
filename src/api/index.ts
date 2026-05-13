@@ -81,3 +81,32 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const getAvailableSessions = async (): Promise<Array<{ sessionId: number; teamId: number; teamName: string; createdAt: string }>> => {
+  const res = await api.get<{ success: boolean; data: Array<{ sessionId: number; teamId: number; teamName: string; createdAt: string }> }>("/contest-state/sessions");
+  return res.data.data;
+};
+
+export const deleteSession = async (sessionId: number): Promise<void> => {
+  await api.delete(`/contest-state/sessions/${sessionId}`);
+};
+
+export const exportSessionScores = async (sessionId: number, format: "csv" | "excel"): Promise<void> => {
+  const res = await api.get(`/contest-state/export-scores`, {
+    params: { sessionId, format },
+    responseType: "blob"
+  });
+
+  const blob = new Blob([res.data], {
+    type: format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  });
+  
+  const link = document.createElement("a");
+  const url = window.URL.createObjectURL(blob);
+  link.href = url;
+  link.download = `diem-thi-phien-${sessionId}.${format === "csv" ? "csv" : "xlsx"}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};

@@ -23,6 +23,7 @@ import { ExamManagementSection } from "../../components/admin/page/ExamManagemen
 import { ExamSetDialogs } from "../../components/admin/page/ExamSetDialogs";
 import { RulesSection } from "../../components/admin/page/RulesSection";
 import { TeamsSection } from "../../components/admin/page/TeamsSection";
+import { ExportScoresSection } from "../../components/admin/page/ExportScoresSection";
 import { QuestionCreatorDialog } from "../../components/admin/QuestionCreatorDialog";
 import { EditQuestionDialog } from "../../components/admin/question-edit/EditQuestionDialog";
 import { buildQuestionContent, parseAcceptedAnswers } from "../../components/admin/questionFormUtils";
@@ -690,6 +691,10 @@ export const AdminPage = () => {
       );
     }
 
+    if (activeView === "export_scores") {
+      return <ExportScoresSection />;
+    }
+
     return (
       <AdminWelcomeView
         teamsCount={teams.length}
@@ -733,7 +738,9 @@ export const AdminPage = () => {
                     ? "Thể lệ cuộc thi"
                     : activeView === "backgrounds"
                       ? "Hình nền hiển thị"
-                      : "Phòng điều khiển thi"}
+                      : activeView === "export_scores"
+                        ? "Xuất điểm thi"
+                        : "Phòng điều khiển thi"}
             </Typography>
             <Alert severity={isConnected ? "success" : "warning"} sx={{ borderRadius: 3 }}>
               {isConnected ? "Đã kết nối realtime" : "Mất kết nối realtime"}

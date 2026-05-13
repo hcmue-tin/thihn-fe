@@ -5,6 +5,7 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
 import TvRoundedIcon from "@mui/icons-material/TvRounded";
+import DownloadIcon from "@mui/icons-material/Download";
 import type { AdminView } from "../../../types/admin";
 
 type Props = {
@@ -65,6 +66,9 @@ export const AdminSidebar = ({ activeView, isConnected, onChangeView, onOpenLedS
           </Button>
           <Button variant="text" startIcon={<TvRoundedIcon />} onClick={() => onChangeView("backgrounds")} sx={sidebarButtonSx("backgrounds")}>
             Hình nền LED / Thí sinh
+          </Button>
+          <Button variant="text" startIcon={<DownloadIcon />} onClick={() => onChangeView("export_scores")} sx={sidebarButtonSx("export_scores")}>
+            Xuất điểm thi
           </Button>
           <Button variant="text" startIcon={<SportsEsportsRoundedIcon />} onClick={() => onChangeView("control")} sx={sidebarButtonSx("control")}>
             Phòng điều khiển

@@ -7,4 +7,4 @@ export type AdminQuestion = QuestionPayload & {
   options?: Array<{ id?: number; label: string; content: string; isCorrect: boolean; orderNum: number }>;
   fillBlankAnswers?: Array<{ id?: number; acceptedAnswer: string }>;
 };
-export type AdminView = "welcome" | "teams" | "contestants" | "exam_mgmt" | "rules" | "backgrounds" | "control";
+export type AdminView = "welcome" | "teams" | "contestants" | "exam_mgmt" | "rules" | "backgrounds" | "export_scores" | "control";
