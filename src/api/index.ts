@@ -110,3 +110,23 @@ export const exportSessionScores = async (sessionId: number, format: "csv" | "ex
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 };
+
+export const exportAllContestantScores = async (format: "csv" | "excel"): Promise<void> => {
+  const res = await api.get(`/contestants/export`, {
+    params: { format },
+    responseType: "blob"
+  });
+
+  const blob = new Blob([res.data], {
+    type: format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  });
+  
+  const link = document.createElement("a");
+  const url = window.URL.createObjectURL(blob);
+  link.href = url;
+  link.download = `diem-thi-sinh.${format === "csv" ? "csv" : "xlsx"}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};

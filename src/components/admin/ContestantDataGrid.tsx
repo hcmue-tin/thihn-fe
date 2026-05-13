@@ -22,7 +22,9 @@ import {
 } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import DownloadIcon from "@mui/icons-material/Download";
 import * as XLSX from "xlsx";
+import { exportAllContestantScores, toastApp } from "../../../api";
 
 type Contestant = { id: number; teamId: number | null; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
 type Team = { id: number; name: string };
@@ -73,6 +75,7 @@ export const ContestantDataGrid = ({
   const [editCode, setEditCode] = useState("");
   const [editUnit, setEditUnit] = useState("");
   const [editTeamId, setEditTeamId] = useState<number | "">("");
+  const [isExporting, setIsExporting] = useState(false);
   const teamMap = useMemo(() => new Map(teams.map((t) => [t.id, t.name])), [teams]);
   const assignableContestants = useMemo(() => contestants.filter((c) => c.teamId === null), [contestants]);
   const allAssignableSelected =
@@ -100,6 +103,19 @@ export const ContestantDataGrid = ({
     XLSX.writeFile(workbook, "mau_import_thi_sinh.xlsx");
   };
 
+  const handleExportAll = async (format: "csv" | "excel") => {
+    try {
+      setIsExporting(true);
+      await exportAllContestantScores(format);
+      toastApp(`Đã xuất tổng điểm thí sinh thành công`, "success");
+    } catch (err) {
+      console.error(err);
+      toastApp("Lỗi khi xuất điểm", "error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Card>
       <CardContent>
@@ -124,6 +140,15 @@ export const ContestantDataGrid = ({
                 e.currentTarget.value = "";
               }}
             />
+          </Button>
+          <Button
+            variant="outlined"
+            disabled={isExporting}
+            onClick={() => handleExportAll("excel")}
+            startIcon={<DownloadIcon />}
+            sx={{ borderColor: "#D97706", color: "#D97706", "&:hover": { borderColor: "#B45309", bgcolor: "rgba(217, 119, 6, 0.04)" } }}
+          >
+            {isExporting ? "Đang xuất..." : "Xuất Điểm"}
           </Button>
           <Button variant="text" onClick={downloadExcelTemplate} sx={{ color: "#0F6B6D", textTransform: "none" }}>
             Tải file mẫu Excel
