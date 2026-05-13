@@ -24,7 +24,7 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import DownloadIcon from "@mui/icons-material/Download";
 import * as XLSX from "xlsx";
-import { exportAllContestantScores, toastApp } from "../../../api";
+import { exportAllContestantScores, toastApp } from "../../api";
 
 type Contestant = { id: number; teamId: number | null; code: string; name: string; unit: string | null; totalScore: number; isOnline: boolean };
 type Team = { id: number; name: string };
