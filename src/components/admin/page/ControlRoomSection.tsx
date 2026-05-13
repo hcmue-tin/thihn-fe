@@ -33,6 +33,7 @@ type Props = {
   onLeaderboardNextPage: () => Promise<void> | void;
   onShowRules: () => Promise<void> | void;
   onShowTeamList: () => Promise<void> | void;
+  onShowExamCode: () => Promise<void> | void;
   onRevealSolutionOnLed: () => Promise<void> | void;
   isLedSolutionRevealed: boolean;
   onSelectAllQuestions: () => void;
@@ -71,6 +72,7 @@ export const ControlRoomSection = ({
   onLeaderboardNextPage,
   onShowRules,
   onShowTeamList,
+  onShowExamCode,
   onRevealSolutionOnLed,
   isLedSolutionRevealed,
   onSelectAllQuestions,
@@ -138,6 +140,7 @@ export const ControlRoomSection = ({
       onLeaderboardNextPage={onLeaderboardNextPage}
       onShowRules={onShowRules}
       onShowTeamList={onShowTeamList}
+      onShowExamCode={onShowExamCode}
       onRevealSolutionOnLed={onRevealSolutionOnLed}
       isLedSolutionRevealed={isLedSolutionRevealed}
       onSelectAllQuestions={onSelectAllQuestions}

@@ -14,6 +14,31 @@ const flash = keyframes`
   50% { transform: scale(1.02); filter: brightness(1.08); }
 `;
 
+const examCodePop = keyframes`
+  0% { transform: translateY(1rem) scale(0.92); opacity: 0; filter: blur(10px) brightness(1.4); }
+  62% { transform: translateY(0) scale(1.04); opacity: 1; filter: blur(0) brightness(1.16); }
+  100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0) brightness(1); }
+`;
+
+const examCodeGlow = keyframes`
+  0%, 100% { text-shadow: 0 0 1rem rgba(245,217,138,0.62), 0 0 3.8rem rgba(26,140,142,0.36); }
+  50% { text-shadow: 0 0 1.8rem rgba(255,255,255,0.9), 0 0 5.5rem rgba(212,167,65,0.68); }
+`;
+
+const examCodeScan = keyframes`
+  0% { transform: translateX(-140%); opacity: 0; }
+  18%, 72% { opacity: 0.88; }
+  100% { transform: translateX(140%); opacity: 0; }
+`;
+
+type ExamCodeOverlay = {
+  id: number;
+  name: string;
+  orderNum: number;
+  code: string;
+  shownAt?: number;
+};
+
 /*
  * LED screen — designed for 1080p and 4K LED walls as the primary target.
  * Every size uses clamp() / vmin / fr units so the whole UI scales smoothly
@@ -57,6 +82,7 @@ export const LedScreenPage = () => {
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const [leaderboardPageIndex, setLeaderboardPageIndex] = useState(0);
   const [countedQuestionId, setCountedQuestionId] = useState<number | null>(null);
+  const [examCodeOverlay, setExamCodeOverlay] = useState<ExamCodeOverlay | null>(null);
   const {
     socket,
     screen,
@@ -178,6 +204,21 @@ export const LedScreenPage = () => {
       socket.off("leaderboard:page", handleLeaderboardPage);
     };
   }, [leaderboardPages.length, socket]);
+
+  useEffect(() => {
+    if (!socket) return undefined;
+    let hideTimer: number | undefined;
+    const handleExamCode = (payload: ExamCodeOverlay) => {
+      window.clearTimeout(hideTimer);
+      setExamCodeOverlay(payload);
+      hideTimer = window.setTimeout(() => setExamCodeOverlay(null), 6500);
+    };
+    socket.on("exam-code:show", handleExamCode);
+    return () => {
+      window.clearTimeout(hideTimer);
+      socket.off("exam-code:show", handleExamCode);
+    };
+  }, [socket]);
 
   const revealDetailText = useMemo(() => {
     if (!question || !reveal) return [];
@@ -1416,6 +1457,106 @@ export const LedScreenPage = () => {
         )}
         </Box>
       </Box>
+      <Fade in={Boolean(examCodeOverlay)} timeout={420} mountOnEnter unmountOnExit>
+        <Box
+          sx={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 20,
+            pointerEvents: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            px: fluid(1, 2.5, 4),
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(15,107,109,0.18) 0%, rgba(15,23,42,0.18) 44%, rgba(15,23,42,0.38) 100%)",
+            backdropFilter: "blur(2px)"
+          }}
+        >
+          <Box
+            sx={{
+              position: "relative",
+              width: "min(86vw, 58rem)",
+              minHeight: "min(42svh, 26rem)",
+              borderRadius: fluid(1, 1.6, 2),
+              overflow: "hidden",
+              display: "grid",
+              placeItems: "center",
+              px: fluid(1.2, 2.5, 3.5),
+              py: fluid(1.2, 2, 3),
+              color: "#FFFFFF",
+              border: "2px solid rgba(245,217,138,0.7)",
+              background:
+                "linear-gradient(135deg, rgba(15,107,109,0.94), rgba(17,65,111,0.9) 48%, rgba(212,167,65,0.88))",
+              boxShadow: "0 2rem 6rem rgba(15,23,42,0.34), inset 0 0 4rem rgba(255,255,255,0.12)",
+              animation: `${examCodePop} 720ms cubic-bezier(0.2, 0.9, 0.22, 1) both`
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "repeating-linear-gradient(0deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 1px, transparent 9px)",
+                opacity: 0.22
+              }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                width: "38%",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.62), transparent)",
+                animation: `${examCodeScan} 2.8s ease-in-out 2`
+              }}
+            />
+            <Box sx={{ position: "relative", textAlign: "center", minWidth: 0 }}>
+              <Typography
+                component="div"
+                sx={{
+                  fontWeight: 950,
+                  letterSpacing: 0,
+                  color: "#F5D98A",
+                  fontSize: fluidFont.h5,
+                  textTransform: "uppercase"
+                }}
+              >
+                MA DE {examCodeOverlay?.code}
+              </Typography>
+              <Typography
+                component="div"
+                sx={{
+                  mt: fluid(0.2, 0.35, 0.45),
+                  fontWeight: 950,
+                  lineHeight: 1.02,
+                  color: "#FFFFFF",
+                  fontSize: "clamp(3.4rem, 10vmin, 8.5rem)",
+                  overflowWrap: "anywhere",
+                  animation: `${examCodeGlow} 1.6s ease-in-out infinite`
+                }}
+                title={examCodeOverlay?.name}
+              >
+                {examCodeOverlay?.name}
+              </Typography>
+              <Typography
+                component="div"
+                sx={{
+                  mt: fluid(0.5, 0.9, 1.2),
+                  mx: "auto",
+                  maxWidth: "46rem",
+                  fontWeight: 850,
+                  color: "rgba(255,255,255,0.88)",
+                  fontSize: fluidFont.subtitle,
+                  textTransform: "uppercase"
+                }}
+              >
+                BO DE
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Fade>
       {debugEnabled && (
         <Box
           sx={{

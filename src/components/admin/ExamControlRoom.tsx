@@ -4,6 +4,7 @@ import NavigateBeforeRoundedIcon from "@mui/icons-material/NavigateBeforeRounded
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
+import ConfirmationNumberRoundedIcon from "@mui/icons-material/ConfirmationNumberRounded";
 import type { ContestScreen, QuestionPayload } from "../../types/realtime";
 import { LiveButtons } from "./LiveButtons";
 
@@ -36,6 +37,7 @@ type ExamControlRoomProps = {
   onLeaderboardNextPage: () => void;
   onShowRules: () => void;
   onShowTeamList: () => void;
+  onShowExamCode: () => void;
   onRevealSolutionOnLed: () => void;
   isLedSolutionRevealed: boolean;
   questionAudioUrl?: string | null;
@@ -71,6 +73,7 @@ export const ExamControlRoom = ({
   onLeaderboardNextPage,
   onShowRules,
   onShowTeamList,
+  onShowExamCode,
   onRevealSolutionOnLed,
   isLedSolutionRevealed,
   questionAudioUrl,
@@ -227,6 +230,16 @@ export const ExamControlRoom = ({
               <GroupsRoundedIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
               Hiển thị Đội thi
             </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onShowExamCode}
+              disabled={pendingAction || selectedExamSetId == null}
+              startIcon={<ConfirmationNumberRoundedIcon fontSize="small" />}
+              sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
+            >
+              Hiá»ƒn thá»‹ mÃ£ Ä‘á»
+            </Button>
             <Button
               size="small"
               variant="outlined"
