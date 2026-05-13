@@ -1,5 +1,6 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
+import { BoldTextEditor } from "../BoldTextEditor";
 import { MatchingEditor } from "../MatchingEditor";
 import { MATCHING_MAX, MATCHING_MIN } from "../matchingEditorUtils";
 import { CHOICE_TYPES } from "../questionTypeGroups";
@@ -71,7 +72,7 @@ export const EditQuestionDialog = ({
   <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
     <DialogTitle>Sửa câu hỏi</DialogTitle>
     <DialogContent sx={{ display: "grid", gap: 1.5, pt: "8px !important" }}>
-      <TextField size="small" label="Nội dung câu hỏi" value={content} onChange={(e) => onContentChange(e.target.value)} multiline minRows={2} />
+      <BoldTextEditor value={content} onChange={onContentChange} />
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
         <TextField size="small" label="Thời gian (giây)" type="number" value={countdown} onChange={(e) => onCountdownChange(Number(e.target.value))} />
         <TextField size="small" label="Điểm" type="number" value={score} onChange={(e) => onScoreChange(Number(e.target.value))} />

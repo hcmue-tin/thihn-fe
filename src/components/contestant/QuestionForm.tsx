@@ -2,6 +2,7 @@ import { Box, Button, Card, CardContent, LinearProgress, Stack, Typography } fro
 import { resolveMediaUrl } from "../../api";
 import type { QuestionOption, QuestionPayload } from "../../types/realtime";
 import { fluid, fluidFont } from "../../utils/fluid";
+import { renderBoldText } from "../../utils/renderBoldText";
 import { CHOICE_SUBMIT_TYPES, SINGLE_SELECT_TYPES } from "../admin/questionTypeGroups";
 import { QuestionContentWithBlank } from "./QuestionContentWithBlank";
 import { parseMatchingContent } from "../admin/matchingEditorUtils";
@@ -134,7 +135,7 @@ export const QuestionForm = ({
                     variant="h6"
                     sx={{
                       color: "#0F172A",
-                      fontWeight: 800,
+                      fontWeight: 600,
                       lineHeight: 1.25,
                       fontSize: fluidFont.body,
                       display: "-webkit-box",
@@ -145,7 +146,7 @@ export const QuestionForm = ({
                     }}
                     title={matchingStem || question.content}
                   >
-                    {matchingStem || question.content}
+                    {renderBoldText(matchingStem || question.content)}
                   </Typography>
                   {countdownValue !== null && (
                     <Box
@@ -178,12 +179,12 @@ export const QuestionForm = ({
                   sx={{
                     mb: fluid(0.5, 0.9, 1.2),
                     color: "#0F172A",
-                    fontWeight: 800,
+                    fontWeight: 600,
                     lineHeight: 1.45,
                     fontSize: fluidFont.h6
                   }}
                 >
-                  {question.content}
+                  {renderBoldText(question.content)}
                 </Typography>
               )}
               {question.imageUrl && (

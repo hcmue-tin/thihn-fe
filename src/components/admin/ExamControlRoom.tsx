@@ -238,7 +238,7 @@ export const ExamControlRoom = ({
               startIcon={<ConfirmationNumberRoundedIcon fontSize="small" />}
               sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
             >
-              Hiá»ƒn thá»‹ mÃ£ Ä‘á»
+              Hiển thị mã đề
             </Button>
             <Button
               size="small"

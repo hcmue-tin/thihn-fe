@@ -661,7 +661,7 @@ export const AdminPage = () => {
           onLeaderboardNextPage={() => withAck("Chuyển trang sau bảng xếp hạng", "admin:leaderboard-page", { direction: "next" })}
           onShowRules={() => withAck("Hiển thị thể lệ", "admin:set-screen", { screen: "rules" })}
           onShowTeamList={() => withAck("Hiển thị đội thi", "admin:set-screen", { screen: "team_list", teamIds: activeTeamId != null ? [activeTeamId] : undefined })}
-          onShowExamCode={() => withAck("Hiá»ƒn thá»‹ mÃ£ Ä‘á»", "admin:show-exam-code", { examSetId: selectedExamSetId })}
+          onShowExamCode={() => withAck("Hiển thị mã đề", "admin:show-exam-code", { examSetId: selectedExamSetId })}
           onRevealSolutionOnLed={revealSolutionOnLed}
           isLedSolutionRevealed={isLedSolutionRevealed}
           onSelectAllQuestions={() => {

@@ -13,6 +13,7 @@ import {
   Typography
 } from "@mui/material";
 import { api } from "../../api";
+import { BoldTextEditor } from "./BoldTextEditor";
 import { MatchingEditor } from "./MatchingEditor";
 import { MATCHING_MAX, MATCHING_MIN } from "./matchingEditorUtils";
 import { buildQuestionContent, parseAcceptedAnswers } from "./questionFormUtils";
@@ -212,7 +213,7 @@ export const QuestionCreatorDialog = ({ open, onClose, selectedExamSetId, defaul
           ))}
         </TextField>
 
-        <TextField size="small" label="Nội dung câu hỏi" value={content} onChange={(e) => setContent(e.target.value)} multiline minRows={2} />
+        <BoldTextEditor value={content} onChange={setContent} />
         {type === "fill_blank" && (
           <Typography variant="body2" sx={{ color: "#475569" }}>
             Dùng <strong>___</strong> trong câu để hiển thị chỗ trống. Thí sinh chọn một trong bốn đáp án

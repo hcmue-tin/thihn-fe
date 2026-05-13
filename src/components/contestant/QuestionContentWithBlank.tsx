@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 import { fluid } from "../../utils/fluid";
+import { renderBoldText } from "../../utils/renderBoldText";
 
 /** Nhận `___`, `____` hoặc `{{blank}}` trong nội dung để hiển thị chỗ trống. */
 const BLANK_RE = /\{\{blank\}\}|_{3,}/g;
@@ -17,8 +18,8 @@ export const QuestionContentWithBlank = ({ content, variant = "h6", sx }: Props)
 
   if (blanks.length === 0) {
     return (
-      <Typography variant={variant} sx={{ mb: fluid(0.5, 0.9, 1.2), color: "#0F172A", fontWeight: 800, lineHeight: 1.5, ...sx }} component="div">
-        {content}
+      <Typography variant={variant} sx={{ mb: fluid(0.5, 0.9, 1.2), color: "#0F172A", fontWeight: 600, lineHeight: 1.5, ...sx }} component="div">
+        {renderBoldText(content)}
       </Typography>
     );
   }
@@ -27,11 +28,11 @@ export const QuestionContentWithBlank = ({ content, variant = "h6", sx }: Props)
     <Typography
       variant={variant}
       component="div"
-      sx={{ mb: fluid(0.5, 0.9, 1.2), color: "#0F172A", fontWeight: 800, lineHeight: 1.65, ...sx }}
+      sx={{ mb: fluid(0.5, 0.9, 1.2), color: "#0F172A", fontWeight: 600, lineHeight: 1.65, ...sx }}
     >
       {parts.map((part, i) => (
         <span key={`p-${i}-${part.slice(0, 12)}`}>
-          {part}
+          {renderBoldText(part)}
           {i < blanks.length && (
             <Box
               component="span"

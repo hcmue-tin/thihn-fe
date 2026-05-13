@@ -8,6 +8,7 @@ import { useCountdownClock } from "../../hooks/realtime/useCountdownClock";
 import { useLedAudioSync } from "../../hooks/realtime/useLedAudioSync";
 import { useRealtime } from "../../hooks/useRealtime";
 import { fluid, fluidFont } from "../../utils/fluid";
+import { renderBoldText } from "../../utils/renderBoldText";
 
 const flash = keyframes`
   0%, 100% { transform: scale(1); filter: brightness(1); }
@@ -588,7 +589,7 @@ export const LedScreenPage = () => {
                       <Typography
                         component="div"
                         sx={{
-                          fontWeight: 800,
+                          fontWeight: 600,
                           color: "#1A3A4A",
                           textAlign: "left",
                           fontSize: fluidFont.h4,
@@ -596,7 +597,7 @@ export const LedScreenPage = () => {
                           overflowWrap: "anywhere"
                         }}
                       >
-                        {questionTitle}
+                        {renderBoldText(questionTitle)}
                       </Typography>
                     )}
 
@@ -721,7 +722,7 @@ export const LedScreenPage = () => {
                                 color: "#17324d",
                                 fontSize: fluidFont.title,
                                 lineHeight: 1.25,
-                                textAlign: "center",
+                                textAlign: "left",
                                 overflowWrap: "anywhere"
                               }}
                             >
@@ -744,7 +745,7 @@ export const LedScreenPage = () => {
                               sx={{
                                 fontWeight: 900,
                                 color: "#8A5A00",
-                                textAlign: "center",
+                                textAlign: "left",
                                 fontSize: fluidFont.h6
                               }}
                             >
@@ -1516,19 +1517,6 @@ export const LedScreenPage = () => {
                 component="div"
                 sx={{
                   fontWeight: 950,
-                  letterSpacing: 0,
-                  color: "#F5D98A",
-                  fontSize: fluidFont.h5,
-                  textTransform: "uppercase"
-                }}
-              >
-                MA DE {examCodeOverlay?.code}
-              </Typography>
-              <Typography
-                component="div"
-                sx={{
-                  mt: fluid(0.2, 0.35, 0.45),
-                  fontWeight: 950,
                   lineHeight: 1.02,
                   color: "#FFFFFF",
                   fontSize: "clamp(3.4rem, 10vmin, 8.5rem)",
@@ -1538,20 +1526,6 @@ export const LedScreenPage = () => {
                 title={examCodeOverlay?.name}
               >
                 {examCodeOverlay?.name}
-              </Typography>
-              <Typography
-                component="div"
-                sx={{
-                  mt: fluid(0.5, 0.9, 1.2),
-                  mx: "auto",
-                  maxWidth: "46rem",
-                  fontWeight: 850,
-                  color: "rgba(255,255,255,0.88)",
-                  fontSize: fluidFont.subtitle,
-                  textTransform: "uppercase"
-                }}
-              >
-                BO DE
               </Typography>
             </Box>
           </Box>

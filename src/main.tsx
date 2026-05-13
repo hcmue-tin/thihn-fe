@@ -7,6 +7,8 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "@fontsource/noto-sans-sc/400.css";
 import "@fontsource/noto-sans-sc/600.css";
+import "@fontsource/noto-sans-sc/700.css";
+import "@fontsource/noto-sans-sc/800.css";
 import "./index.css";
 import App from "./App";
 import { appTheme } from "./theme";
