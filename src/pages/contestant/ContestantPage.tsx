@@ -96,6 +96,7 @@ export const ContestantPage = () => {
   const autoSubmitTriggeredRef = useRef(false);
   const pendingRetryKeyRef = useRef<string | null>(null);
   const lastAppliedResultRef = useRef<string | null>(null);
+  const lastAutoSavedPayloadRef = useRef<string | null>(null);
   const currentSessionId = fullState?.currentSessionId ?? 1;
   const draftKey = question && identity ? `contestantDraft:${identity.id}:${currentSessionId}:${question.id}` : null;
   const pendingSubmitKey = question && identity ? `contestantPendingSubmit:${identity.id}:${currentSessionId}:${question.id}` : null;
@@ -208,6 +209,7 @@ export const ContestantPage = () => {
     setLocked(false);
     autoSubmitTriggeredRef.current = false;
     pendingRetryKeyRef.current = null;
+    lastAutoSavedPayloadRef.current = null;
   }, [draftKey, question?.id, questionShowSeq]);
 
   useEffect(() => {
@@ -301,6 +303,34 @@ export const ContestantPage = () => {
   };
 
   const hasPendingSelection = selectedOptionIds.length > 0 || fillText.trim().length > 0;
+
+  useEffect(() => {
+    if (!isConnected || screen !== "countdown" || !question || locked || isSubmitted || isLoading || !hasPendingSelection) {
+      return;
+    }
+
+    const normalizedFillText = fillText.trim();
+    const payload = {
+      questionId: question.id,
+      selectedOptionIds: selectedOptionIds.length > 0 ? selectedOptionIds : undefined,
+      fillText: normalizedFillText.length > 0 ? normalizedFillText : undefined
+    };
+    const payloadKey = JSON.stringify(payload);
+    if (lastAutoSavedPayloadRef.current === payloadKey) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const ack = await emitWithAck("contestant:auto-save-answer", payload);
+        if (ack.success) {
+          lastAutoSavedPayloadRef.current = payloadKey;
+        }
+      })();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [emitWithAck, fillText, hasPendingSelection, isConnected, isLoading, isSubmitted, locked, question, screen, selectedOptionIds]);
 
   useEffect(() => {
     if (!isConnected || !pendingSubmitKey || !question || locked || isSubmitted || isLoading) return;
