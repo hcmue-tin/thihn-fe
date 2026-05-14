@@ -89,12 +89,13 @@ export const ContestantPage = () => {
   const [fillText, setFillText] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [locked, setLocked] = useState(false);
-  const [officialScore, setOfficialScore] = useState<number>(identity?.totalScore ?? 0);
+  const [displayScore, setDisplayScore] = useState<number>(identity?.totalScore ?? 0);
   const [contestantBackgroundFallback, setContestantBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const [countedQuestionId, setCountedQuestionId] = useState<number | null>(null);
   const autoSubmitTriggeredRef = useRef(false);
   const pendingRetryKeyRef = useRef<string | null>(null);
+  const lastAppliedResultRef = useRef<string | null>(null);
   const currentSessionId = fullState?.currentSessionId ?? 1;
   const draftKey = question && identity ? `contestantDraft:${identity.id}:${currentSessionId}:${question.id}` : null;
   const pendingSubmitKey = question && identity ? `contestantPendingSubmit:${identity.id}:${currentSessionId}:${question.id}` : null;
@@ -127,13 +128,15 @@ export const ContestantPage = () => {
       .get<{ success: boolean; data: { contestantId: number; totalScore: number } }>("/contestants/me/score")
       .then((res) => {
         if (!mounted) return;
-        setOfficialScore(Number(res.data.data.totalScore) || 0);
+        const nextScore = Number(res.data.data.totalScore);
+        const safeScore = Number.isFinite(nextScore) ? nextScore : 0;
+        setDisplayScore((prev) => (safeScore === 0 && prev > 0 ? prev : Math.max(prev, safeScore)));
       })
       .catch(() => undefined);
     return () => {
       mounted = false;
     };
-  }, [identity?.id, latestAnswerResult?.totalScore, token]);
+  }, [identity?.id, token]);
 
   useEffect(() => {
     let mounted = true;
@@ -248,7 +251,8 @@ export const ContestantPage = () => {
       localStorage.setItem("accessToken", data.token);
       localStorage.setItem("contestantProfile", JSON.stringify(data.contestant));
       setIdentity(data.contestant);
-      setOfficialScore(Number(data.contestant.totalScore) || 0);
+      const loginScore = Number(data.contestant.totalScore) || 0;
+      setDisplayScore(loginScore);
       setToken(data.token);
     } catch {
       setError("Đăng nhập thất bại. Vui lòng kiểm tra mã và mật khẩu.");
@@ -418,6 +422,55 @@ export const ContestantPage = () => {
     return "";
   }, [options, question, reveal]);
 
+  useEffect(() => {
+    if (!latestAnswerResult) return;
+
+    const resultKey = [
+      questionShowSeq,
+      latestAnswerResult.questionId,
+      latestAnswerResult.isCorrect ? 1 : 0,
+      latestAnswerResult.scoreEarned,
+      latestAnswerResult.totalScore
+    ].join(":");
+    if (lastAppliedResultRef.current === resultKey) return;
+    lastAppliedResultRef.current = resultKey;
+
+    const nextTotal = Number(latestAnswerResult.totalScore);
+    const earned = Number(latestAnswerResult.scoreEarned);
+
+    setDisplayScore((prev) => {
+      if (Number.isFinite(nextTotal) && nextTotal > 0) {
+        return nextTotal;
+      }
+      if (latestAnswerResult.isCorrect && Number.isFinite(earned) && earned > 0) {
+        return prev + earned;
+      }
+      return prev;
+    });
+  }, [latestAnswerResult, questionShowSeq]);
+
+  const showWaiting = screen === "idle" || screen === "waiting" || screen === "rules" || screen === "team_list";
+  const showRules = screen === "rules";
+  const isDuringQuestionFlow = screen === "question" || screen === "countdown" || screen === "reveal";
+  const activeTeamId = fullState?.activeTeamId ?? null;
+  const isTeamNotSelected = isDuringQuestionFlow && activeTeamId == null;
+  const isBlockedByTeam = isDuringQuestionFlow && activeTeamId != null && identity != null && identity.teamId !== activeTeamId;
+  const shouldBlockInteraction = isTeamNotSelected || isBlockedByTeam;
+
+  const showQuestion = !shouldBlockInteraction && isDuringQuestionFlow && !!question;
+  const showResult = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && !!latestAnswerResult;
+  const showCorrectAnswer =
+    !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && !!question && !!reveal;
+  const waitingForCountdown = screen === "question";
+
+  useEffect(() => {
+    if (showResult) {
+      setResultPopupVisible(true);
+      const timer = setTimeout(() => setResultPopupVisible(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    setResultPopupVisible(false);
+  }, [showResult]);
 
 
   if (!token || !identity) {
@@ -487,29 +540,6 @@ export const ContestantPage = () => {
     );
   }
 
-  const showWaiting = screen === "idle" || screen === "waiting" || screen === "rules" || screen === "team_list";
-  const showRules = screen === "rules";
-  const isDuringQuestionFlow = screen === "question" || screen === "countdown" || screen === "reveal";
-  const activeTeamId = fullState?.activeTeamId ?? null;
-  const isTeamNotSelected = isDuringQuestionFlow && activeTeamId == null;
-  const isBlockedByTeam = isDuringQuestionFlow && activeTeamId != null && identity.teamId !== activeTeamId;
-  const shouldBlockInteraction = isTeamNotSelected || isBlockedByTeam;
-
-  const showQuestion = !shouldBlockInteraction && isDuringQuestionFlow && question;
-  const showResult = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && latestAnswerResult;
-  const showCorrectAnswer =
-    !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && reveal;
-  const waitingForCountdown = screen === "question";
-
-  useEffect(() => {
-    if (showResult) {
-      setResultPopupVisible(true);
-      const timer = setTimeout(() => setResultPopupVisible(false), 2000);
-      return () => clearTimeout(timer);
-    } else {
-      setResultPopupVisible(false);
-    }
-  }, [showResult]);
   const canSubmit = isConnected && !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
   const isMatchingQuestion = question?.type === "matching";
   const contestantBg =
@@ -524,6 +554,8 @@ export const ContestantPage = () => {
     clearAllSessions();
     setToken(null);
     setIdentity(null);
+    setDisplayScore(0);
+    lastAppliedResultRef.current = null;
     setCode("");
     setPassword("");
   };
@@ -665,7 +697,7 @@ export const ContestantPage = () => {
                 whiteSpace: "nowrap"
               }}
             >
-              Tổng điểm: {latestAnswerResult?.totalScore ?? officialScore}
+              Tổng điểm: {displayScore}
             </Box>
             <Button
               size="small"
