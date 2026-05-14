@@ -14,8 +14,15 @@ export const useCountdownClock = (countdownEndsAt: number | null, countdownSecon
     setCountdownStartedAt(Date.now());
     setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
     let raf = 0;
-    const render = () => {
-      setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
+    let lastUpdate = 0;
+    
+    const render = (now: number) => {
+      // Throttle React state updates to ~15fps (every 66ms) instead of 60fps (16ms)
+      // This drastically reduces re-renders of ContestantPage and reduces lag
+      if (now - lastUpdate > 66) {
+         setRemainingMs(Math.max(0, countdownEndsAt - Date.now()));
+         lastUpdate = now;
+      }
       raf = requestAnimationFrame(render);
     };
 

@@ -7,10 +7,11 @@ type Props = {
   content: string;
   fillText: string;
   locked: boolean;
+  correctAnswerText?: string;
   onFillTextChange: (value: string) => void;
 };
 
-export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChange }: Props) => {
+export const MatchingQuestionView = ({ content, fillText, locked, correctAnswerText, onFillTextChange }: Props) => {
   const [selectedLeftKey, setSelectedLeftKey] = useState<string>("");
   const [selectedRightKey, setSelectedRightKey] = useState<string>("");
   const pairPalette = ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
@@ -148,34 +149,63 @@ export const MatchingQuestionView = ({ content, fillText, locked, onFillTextChan
   return (
     <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: compactLevel >= 2 ? 0.35 : 0.6, overflow: "hidden" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: fluid(0.4, 0.6, 0.8), flexShrink: 0 }}>
-        <Typography sx={{ color: "#111827", fontWeight: 800, fontSize: itemFont, lineHeight: 1.15 }}>
-          {`Đã ghép ${completedCount}/${leftKeys.length}`}
-        </Typography>
-        <Button
-          variant="outlined"
-          color="inherit"
-          disabled={locked || completedCount === 0}
-          onClick={() => {
-            onFillTextChange("");
-            setSelectedLeftKey("");
-            setSelectedRightKey("");
-          }}
-          sx={{
-            flexShrink: 0,
-            borderRadius: 1.5,
-            textTransform: "none",
-            fontWeight: 700,
-            fontSize: itemFont,
-            minHeight: compactLevel >= 2 ? "1.6rem" : "2rem",
-            px: compactLevel >= 2 ? 0.75 : 1,
-            py: 0.1,
-            borderColor: "rgba(17,24,39,0.25)",
-            color: "#111827",
-            "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" }
-          }}
-        >
-          Reset
-        </Button>
+        <Box sx={{ display: "flex", alignItems: "center", gap: fluid(0.4, 0.6, 0.8) }}>
+          <Typography sx={{ color: "#111827", fontWeight: 800, fontSize: itemFont, lineHeight: 1.15 }}>
+            {`Đã ghép ${completedCount}/${leftKeys.length}`}
+          </Typography>
+          <Button
+            variant="outlined"
+            color="inherit"
+            disabled={locked || completedCount === 0}
+            onClick={() => {
+              onFillTextChange("");
+              setSelectedLeftKey("");
+              setSelectedRightKey("");
+            }}
+            sx={{
+              flexShrink: 0,
+              borderRadius: 1.5,
+              textTransform: "none",
+              fontWeight: 700,
+              fontSize: itemFont,
+              minHeight: compactLevel >= 2 ? "1.6rem" : "2rem",
+              px: compactLevel >= 2 ? 0.75 : 1,
+              py: 0.1,
+              borderColor: "rgba(17,24,39,0.25)",
+              color: "#111827",
+              "&:hover": { borderColor: "rgba(17,24,39,0.45)", backgroundColor: "rgba(15,23,42,0.03)" }
+            }}
+          >
+            Reset
+          </Button>
+        </Box>
+
+        {correctAnswerText && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: fluid(0.4, 0.6, 0.8),
+              px: fluid(0.4, 0.6, 0.8),
+              py: fluid(0.15, 0.25, 0.35),
+              borderRadius: 1.5,
+              border: "2px solid #22c55e",
+              backgroundColor: "rgba(34,197,94,0.08)",
+              animation: "blink-correct-inline 1s ease-in-out infinite",
+              "@keyframes blink-correct-inline": {
+                "0%, 100%": { borderColor: "#22c55e", boxShadow: "0 0 8px rgba(34,197,94,0.25)" },
+                "50%": { borderColor: "#86efac", boxShadow: "0 0 14px rgba(34,197,94,0.45)" }
+              }
+            }}
+          >
+            <Typography sx={{ fontWeight: 900, color: "#15803d", fontSize: itemFont, whiteSpace: "nowrap" }}>
+              Đáp án đúng:
+            </Typography>
+            <Typography sx={{ fontWeight: 900, color: "#15803d", fontSize: itemFont, letterSpacing: 1 }}>
+              {correctAnswerText}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       <Box

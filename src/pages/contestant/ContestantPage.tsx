@@ -89,6 +89,7 @@ export const ContestantPage = () => {
   const [fillText, setFillText] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [officialScore, setOfficialScore] = useState<number>(identity?.totalScore ?? 0);
   const [contestantBackgroundFallback, setContestantBackgroundFallback] = useState<string | null>(null);
   const [bgLoadState, setBgLoadState] = useState<"idle" | "loaded" | "error">("idle");
   const [countedQuestionId, setCountedQuestionId] = useState<number | null>(null);
@@ -97,12 +98,13 @@ export const ContestantPage = () => {
   const currentSessionId = fullState?.currentSessionId ?? 1;
   const draftKey = question && identity ? `contestantDraft:${identity.id}:${currentSessionId}:${question.id}` : null;
   const pendingSubmitKey = question && identity ? `contestantPendingSubmit:${identity.id}:${currentSessionId}:${question.id}` : null;
+  const [resultPopupVisible, setResultPopupVisible] = useState(false);
   const passwordInputProps = {
     autoCapitalize: "none" as const,
     autoCorrect: "off" as const,
     spellCheck: false,
     inputMode: "text" as const,
-    style: { imeMode: "disabled" as never }
+    style: { imeMode: "disabled" } as any
   };
 
   // Opt-in to body-level overflow hidden for this route. The CSS media
@@ -117,6 +119,22 @@ export const ContestantPage = () => {
       connectSocket({ token, role: "contestant" });
     }
   }, [token, connectSocket]);
+
+  useEffect(() => {
+    if (!token || !identity) return;
+    let mounted = true;
+    void api
+      .get<{ success: boolean; data: { contestantId: number; totalScore: number } }>("/contestants/me/score")
+      .then((res) => {
+        if (!mounted) return;
+        setOfficialScore(Number(res.data.data.totalScore) || 0);
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, [identity?.id, latestAnswerResult?.totalScore, token]);
+
   useEffect(() => {
     let mounted = true;
     const token = localStorage.getItem("contestantToken") || localStorage.getItem("accessToken") || localStorage.getItem("adminToken");
@@ -230,6 +248,7 @@ export const ContestantPage = () => {
       localStorage.setItem("accessToken", data.token);
       localStorage.setItem("contestantProfile", JSON.stringify(data.contestant));
       setIdentity(data.contestant);
+      setOfficialScore(Number(data.contestant.totalScore) || 0);
       setToken(data.token);
     } catch {
       setError("Đăng nhập thất bại. Vui lòng kiểm tra mã và mật khẩu.");
@@ -399,6 +418,8 @@ export const ContestantPage = () => {
     return "";
   }, [options, question, reveal]);
 
+
+
   if (!token || !identity) {
     return (
       <ThemeProvider theme={lightTheme}>
@@ -477,8 +498,18 @@ export const ContestantPage = () => {
   const showQuestion = !shouldBlockInteraction && isDuringQuestionFlow && question;
   const showResult = !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && latestAnswerResult;
   const showCorrectAnswer =
-    !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && question.type !== "matching" && reveal;
+    !shouldBlockInteraction && screen === "reveal" && ledSolutionVisible && question && reveal;
   const waitingForCountdown = screen === "question";
+
+  useEffect(() => {
+    if (showResult) {
+      setResultPopupVisible(true);
+      const timer = setTimeout(() => setResultPopupVisible(false), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setResultPopupVisible(false);
+    }
+  }, [showResult]);
   const canSubmit = isConnected && !shouldBlockInteraction && screen === "countdown" && !!countdownEndsAt && remainingMs > 0 && !isSubmitted;
   const isMatchingQuestion = question?.type === "matching";
   const contestantBg =
@@ -634,7 +665,7 @@ export const ContestantPage = () => {
                 whiteSpace: "nowrap"
               }}
             >
-              Tổng điểm: {latestAnswerResult?.totalScore ?? 0}
+              Tổng điểm: {latestAnswerResult?.totalScore ?? officialScore}
             </Box>
             <Button
               size="small"
@@ -653,7 +684,7 @@ export const ContestantPage = () => {
           )}
 
           {/* Main content area fills remaining space fluidly. */}
-          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: fluid(0.5, 1, 1.5) }}>
+          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: fluid(0.5, 1, 1.5), position: "relative" }}>
             {shouldBlockInteraction && (
               <Alert severity="warning" sx={{ borderRadius: 3, fontSize: fluidFont.body }}>
                 {isTeamNotSelected
@@ -773,6 +804,8 @@ export const ContestantPage = () => {
                     canSubmit={canSubmit}
                     waitingForCountdown={waitingForCountdown}
                     countdownValue={isMatchingQuestion ? countdownDisplay : null}
+                    correctOptionIds={showCorrectAnswer && reveal ? reveal.correctOptionIds : undefined}
+                    correctAnswerText={showCorrectAnswer ? correctAnswerText : undefined}
                     onSelectSingle={(optionId) => setSelectedOptionIds([optionId])}
                     onToggleMultiple={(optionId, checked) => {
                       if (checked) setSelectedOptionIds((prev) => [...prev, optionId]);
@@ -785,24 +818,27 @@ export const ContestantPage = () => {
               </Box>
             )}
 
-            {showResult && latestAnswerResult && <ResultView isCorrect={latestAnswerResult.isCorrect} />}
-            {showCorrectAnswer && (
-              <Card
+            {resultPopupVisible && latestAnswerResult && (
+              <Box
                 sx={{
-                  borderRadius: 3,
-                  border: "2px solid rgba(212,167,65,0.55)",
-                  background: "linear-gradient(135deg, rgba(212,167,65,0.12), rgba(255,255,255,0.92))"
+                  position: "fixed",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  zIndex: 1000,
+                  animation: "popup-fade 0.3s ease-out"
                 }}
               >
-                <CardContent>
-                  <Typography sx={{ fontWeight: 900, color: "#8A5A00", mb: 0.75, fontSize: fluidFont.subtitle }}>
-                    Đáp án đúng
-                  </Typography>
-                  <Typography sx={{ color: "#17324d", fontWeight: 700, overflowWrap: "anywhere", fontSize: fluidFont.body }}>
-                    {correctAnswerText || "Đang cập nhật đáp án"}
-                  </Typography>
-                </CardContent>
-              </Card>
+                <ResultView isCorrect={latestAnswerResult.isCorrect} />
+                <style>
+                  {`
+                    @keyframes popup-fade {
+                      from { opacity: 0; transform: translate(-50%, -40%); }
+                      to { opacity: 1; transform: translate(-50%, -50%); }
+                    }
+                  `}
+                </style>
+              </Box>
             )}
           </Box>
 

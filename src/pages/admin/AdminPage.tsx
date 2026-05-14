@@ -348,6 +348,26 @@ export const AdminPage = () => {
     setToast({ open: true, message: "Đã cập nhật câu hỏi" });
   };
 
+  const advanceSelectedQuestion = () => {
+    const orderedQuestionIds = questions.map((q) => q.id);
+    const rotationIds = selectedQuestionIds.length > 0 ? selectedQuestionIds : orderedQuestionIds;
+    if (rotationIds.length === 0) return;
+    const currentIndex = selectedQuestionId ? rotationIds.indexOf(selectedQuestionId) : -1;
+    if (currentIndex < 0) {
+      setSelectedQuestionId(rotationIds[0]);
+      return;
+    }
+    if (currentIndex >= rotationIds.length - 1) {
+      setSelectedQuestionId(null);
+      setToast({
+        open: true,
+        message: selectedQuestionIds.length > 0 ? "Đã hết danh sách câu đã chọn. Hãy chọn lại để chạy vòng mới." : "Đã hết bộ đề hiện tại."
+      });
+      return;
+    }
+    setSelectedQuestionId(rotationIds[currentIndex + 1]);
+  };
+
   const stopAndAutoNext = async (): Promise<void> => {
     try {
       setPendingAction("B1: Dừng & hiện đáp án thí sinh");
@@ -358,23 +378,6 @@ export const AdminPage = () => {
       }
       setIsLedSolutionRevealed(false);
       setToast({ open: true, message: "Đã hiện đáp án thí sinh. Bạn có thể bấm B2 để hiện đáp án đúng trên LED." });
-      const orderedQuestionIds = questions.map((q) => q.id);
-      const rotationIds = selectedQuestionIds.length > 0 ? selectedQuestionIds : orderedQuestionIds;
-      if (rotationIds.length === 0) return;
-      const currentIndex = selectedQuestionId ? rotationIds.indexOf(selectedQuestionId) : -1;
-      if (currentIndex < 0) {
-        setSelectedQuestionId(rotationIds[0]);
-        return;
-      }
-      if (currentIndex >= rotationIds.length - 1) {
-        setSelectedQuestionId(null);
-        setToast({
-          open: true,
-          message: selectedQuestionIds.length > 0 ? "Đã hết danh sách câu đã chọn. Hãy chọn lại để chạy vòng mới." : "Đã hết bộ đề hiện tại."
-        });
-        return;
-      }
-      setSelectedQuestionId(rotationIds[currentIndex + 1]);
     } catch (error) {
       setToast({ open: true, message: error instanceof Error ? error.message : "Action failed" });
     } finally {
@@ -392,6 +395,7 @@ export const AdminPage = () => {
         return;
       }
       setIsLedSolutionRevealed(true);
+      advanceSelectedQuestion();
       setToast({ open: true, message: "Đã hiển thị đáp án đúng cho LED và thí sinh." });
     } catch (error) {
       setToast({ open: true, message: error instanceof Error ? error.message : "Action failed" });

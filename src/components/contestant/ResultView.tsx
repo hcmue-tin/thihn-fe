@@ -8,23 +8,39 @@ type ResultViewProps = {
 export const ResultView = ({ isCorrect }: ResultViewProps) => (
   <Box
     sx={{
-      p: fluid(1, 1.5, 2),
-      borderRadius: 3,
-      borderLeft: `0.3rem solid ${isCorrect ? "#15803D" : "#DC2626"}`,
+      px: fluid(1.5, 2.5, 3.5),
+      py: fluid(1, 1.5, 2),
+      borderRadius: 4,
+      backgroundColor: isCorrect ? "#ffffff" : "#ffffff",
+      border: `4px solid ${isCorrect ? "#22c55e" : "#ef4444"}`,
+      boxShadow: isCorrect 
+        ? "0 10px 25px -5px rgba(34, 197, 94, 0.4), 0 8px 10px -6px rgba(34, 197, 94, 0.4)"
+        : "0 10px 25px -5px rgba(239, 68, 68, 0.4), 0 8px 10px -6px rgba(239, 68, 68, 0.4)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       background: isCorrect
-        ? "linear-gradient(135deg, rgba(21,128,61,0.06), rgba(34,197,94,0.04))"
-        : "linear-gradient(135deg, rgba(220,38,38,0.06), rgba(248,113,113,0.04))",
-      border: `1px solid ${isCorrect ? "rgba(21,128,61,0.15)" : "rgba(220,38,38,0.15)"}`
+        ? "linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)"
+        : "linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)",
+      transform: "scale(1.1)",
     }}
   >
     <Typography
       sx={{
-        fontWeight: 800,
-        color: isCorrect ? "#15803D" : "#DC2626",
-        fontSize: fluidFont.h6
+        fontWeight: 900,
+        color: isCorrect ? "#15803d" : "#b91c1c",
+        fontSize: fluidFont.h5,
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5
       }}
     >
-      {isCorrect ? "✅ Bạn trả lời đúng!" : "❌ Bạn trả lời sai."}
+      <Box component="span" sx={{ fontSize: "1.2em" }}>
+        {isCorrect ? "✅" : "❌"}
+      </Box>
+      {isCorrect ? "Bạn trả lời đúng!" : "Bạn trả lời sai!"}
     </Typography>
   </Box>
 );
